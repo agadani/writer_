@@ -1,6 +1,6 @@
 # writer_
 
-A terminal-like, minimalish, customizable writing app with local storage and cloud sync.
+A terminal-like, minimalish, customizable writing app with local storage and cloud sync.  Deployed at https://writer-kl2.pages.dev/
 
 Inspired by writer.bighugelabs.com, which is amazing but lacked the offline features I wanted. 
 
