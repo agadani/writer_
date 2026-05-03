@@ -1,0 +1,2672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0a0a12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Distraction-free Writer">
+<title>WRITER_ // Neural Draft Interface</title>
+<link rel="manifest" href="/manifest.json">
+<style>
+/* ── Reset & Base ──────────────────────────────────────── */
+:root{--bg:#0a0a12;--text:#05d9e8;--acc:#ff2a6d;--acc2:#f9f002;--cm:rgba(128,128,128,.5)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:#e0e0e0;font-family:'Courier New',monospace}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px)}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:color-mix(in srgb,var(--text) 6%,transparent)}
+::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--text) 35%,transparent);border-left:1px solid color-mix(in srgb,var(--text) 50%,transparent)}
+::selection{background:color-mix(in srgb,var(--acc) 40%,transparent);color:#fff}
+@keyframes glitch{0%,100%{text-shadow:2px 0 var(--acc),-2px 0 var(--text)}25%{text-shadow:-2px -1px var(--acc),2px 1px var(--text)}50%{text-shadow:1px 2px var(--acc),-1px -2px var(--text)}75%{text-shadow:-1px 1px var(--acc),1px -1px var(--text)}}
+@keyframes flicker{0%,100%{opacity:1}3%{opacity:.85}6%{opacity:1}7%{opacity:.9}8%{opacity:1}92%{opacity:1}93%{opacity:.88}94%{opacity:1}}
+.glitch{animation:glitch 3s ease-in-out infinite alternate}
+.flicker{animation:flicker 8s linear infinite}
+#app{display:flex;height:100%}
+#sidebar{width:256px;min-width:256px;background:color-mix(in srgb,var(--bg) 85%,black);border-right:1px solid color-mix(in srgb,var(--text) 25%,transparent);display:flex;flex-direction:column;transition:width .3s,min-width .3s,opacity .3s;overflow:hidden;user-select:none}
+#sidebar.closed{width:0;min-width:0;opacity:0}
+#editor-area{flex:1;display:flex;flex-direction:column;min-width:0}
+.sb-header{padding:16px;border-bottom:1px solid color-mix(in srgb,var(--text) 25%,transparent);position:relative;overflow:hidden}
+.sb-header::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 8%,transparent),transparent,color-mix(in srgb,var(--text) 8%,transparent))}
+.sb-header h1{font-size:18px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--text);position:relative}
+.sb-header p{font-size:10px;color:color-mix(in srgb,var(--text) 55%,transparent);letter-spacing:.3em;text-transform:uppercase;position:relative;margin-top:2px}
+.sb-actions{padding:8px;border-bottom:1px solid color-mix(in srgb,var(--text) 25%,transparent);display:flex;gap:4px}
+.sb-docs{flex:1;overflow-y:auto;padding:4px 0}
+.sb-tools{border-top:1px solid color-mix(in srgb,var(--text) 25%,transparent);padding:8px}
+.btn{padding:6px 10px;font-family:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.1em;cursor:pointer;transition:all .2s;border:none;outline:none}
+.btn-cyan{background:linear-gradient(135deg,color-mix(in srgb,var(--text) 20%,transparent),color-mix(in srgb,var(--text) 8%,transparent));border:1px solid color-mix(in srgb,var(--text) 50%,transparent);color:var(--text);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))}
+.btn-cyan:hover{background:linear-gradient(135deg,color-mix(in srgb,var(--text) 35%,transparent),color-mix(in srgb,var(--text) 15%,transparent));box-shadow:0 0 10px color-mix(in srgb,var(--text) 70%,transparent);color:#fff}
+.btn-pink{background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 25%,transparent),color-mix(in srgb,var(--acc) 8%,transparent));border:1px solid color-mix(in srgb,var(--acc) 50%,transparent);color:var(--acc);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))}
+.btn-pink:hover{background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 40%,transparent),color-mix(in srgb,var(--acc) 15%,transparent));box-shadow:0 0 10px color-mix(in srgb,var(--acc) 70%,transparent);color:#fff}
+.btn-yellow{background:linear-gradient(135deg,color-mix(in srgb,var(--acc2) 20%,transparent),color-mix(in srgb,var(--acc2) 6%,transparent));border:1px solid color-mix(in srgb,var(--acc2) 50%,transparent);color:var(--acc2);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))}
+.btn-yellow:hover{background:linear-gradient(135deg,color-mix(in srgb,var(--acc2) 30%,transparent),color-mix(in srgb,var(--acc2) 12%,transparent));box-shadow:0 0 10px color-mix(in srgb,var(--acc2) 60%,transparent);color:#fff}
+.folder-item{padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s;user-select:none}
+.folder-item:hover{background:color-mix(in srgb,var(--acc) 8%,transparent)}
+.folder-item .arrow{font-size:9px;color:color-mix(in srgb,var(--acc) 50%,transparent);width:12px;text-align:center;flex-shrink:0}
+.folder-item .fname{font-size:11px;color:var(--acc);text-transform:uppercase;letter-spacing:.15em;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folder-item .fcount{font-size:9px;color:color-mix(in srgb,var(--text) 40%,transparent)}
+.folder-item.drop-target{background:color-mix(in srgb,var(--acc) 15%,transparent);outline:1px dashed var(--acc)}
+.doc-item{padding:8px 12px;cursor:pointer;border-left:2px solid transparent;transition:all .15s}
+.doc-item.nested{padding-left:30px}
+.doc-item:hover{background:color-mix(in srgb,var(--text) 8%,transparent)}
+.doc-item.active{background:color-mix(in srgb,var(--text) 12%,transparent);border-left-color:var(--text)}
+.doc-item .title{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:color-mix(in srgb,var(--text) 60%,#888)}
+.doc-item.active .title{color:var(--text)}
+.doc-item .meta{font-size:10px;color:color-mix(in srgb,var(--text) 50%,transparent);margin-top:2px}
+.doc-item.dragging{opacity:.4}
+.drop-above{border-top:2px solid var(--text)!important}
+.root-drop{border-top:2px dashed color-mix(in srgb,var(--text) 40%,transparent);margin:2px 12px;height:0;transition:height .15s}
+.root-drop.drop-target{height:8px;border-color:var(--text);background:color-mix(in srgb,var(--text) 8%,transparent)}
+.tool-btn{display:block;width:100%;text-align:left;background:none;border:none;color:color-mix(in srgb,var(--text) 65%,transparent);padding:6px 12px;font-family:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.15em;cursor:pointer;transition:all .15s}
+.tool-btn:hover{color:var(--text);background:color-mix(in srgb,var(--text) 10%,transparent)}
+.tool-btn.pink{color:color-mix(in srgb,var(--acc) 70%,transparent)}.tool-btn.pink:hover{color:var(--acc);background:color-mix(in srgb,var(--acc) 10%,transparent)}
+.tool-btn.yellow{color:color-mix(in srgb,var(--acc2) 70%,transparent)}.tool-btn.yellow:hover{color:var(--acc2);background:color-mix(in srgb,var(--acc2) 10%,transparent)}
+#topbar{display:flex;align-items:center;padding:4px 12px;border-bottom:1px solid color-mix(in srgb,var(--text) 20%,transparent);font-size:12px;flex-shrink:0}
+#topbar button{background:none;border:none;color:color-mix(in srgb,var(--text) 60%,transparent);cursor:pointer;padding:4px;transition:color .15s}
+#topbar button:hover{color:var(--text)}
+#topbar .doc-title{color:color-mix(in srgb,var(--text) 60%,transparent);font-size:11px;text-transform:uppercase;letter-spacing:.15em;margin-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .15s}
+#topbar .doc-title:hover{color:var(--text);text-decoration:underline;text-underline-offset:3px;text-decoration-color:color-mix(in srgb,var(--text) 40%,transparent)}
+#topbar .shortcuts{margin-left:auto;font-size:10px;color:color-mix(in srgb,var(--text) 55%,transparent);text-transform:uppercase;letter-spacing:.1em}
+#topbar .shortcuts span{cursor:pointer;padding:2px 4px;border-radius:2px;transition:color .15s,background .15s}
+#topbar .shortcuts span:hover{color:var(--text);background:color-mix(in srgb,var(--text) 10%,transparent)}
+#editor-wrap{position:relative;flex:1;overflow:hidden}
+#editor-highlight{position:absolute;inset:0;padding:32px 64px;font-family:'Courier New',monospace;font-size:18px;line-height:1.8;white-space:pre-wrap;word-wrap:break-word;pointer-events:none;overflow-y:auto;border:none}
+#editor-highlight .cm{color:var(--cm);opacity:1;filter:none}
+#editor{position:absolute;inset:0;width:100%;height:100%;resize:none;outline:none;padding:32px 64px;border:none;font-family:'Courier New',monospace;font-size:18px;line-height:1.8;color:transparent;caret-color:var(--acc);background:transparent;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--text) 25%,transparent) transparent;-webkit-text-fill-color:transparent}
+#editor::placeholder{-webkit-text-fill-color:color-mix(in srgb,var(--text) 40%,transparent)}
+
+#conflict-banner{padding:6px 12px;font-size:10px;font-family:inherit;text-transform:uppercase;letter-spacing:.1em;background:color-mix(in srgb,var(--acc2) 8%,transparent);border-bottom:1px solid color-mix(in srgb,var(--acc2) 25%,transparent);color:var(--acc2);display:flex;align-items:center;gap:8px;flex-shrink:0}
+#conflict-banner .dismiss{background:none;border:none;color:color-mix(in srgb,var(--acc2) 60%,transparent);font-family:inherit;font-size:12px;cursor:pointer;padding:0 4px;transition:color .15s}
+#conflict-banner .dismiss:hover{color:var(--acc2)}
+#conflict-banner .view-btn{background:none;border:1px solid color-mix(in srgb,var(--acc2) 30%,transparent);color:var(--acc2);font-family:inherit;font-size:9px;padding:2px 8px;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;transition:all .15s}
+#conflict-banner .view-btn:hover{background:color-mix(in srgb,var(--acc2) 15%,transparent)}
+#statusbar{display:flex;justify-content:space-between;padding:6px 16px;font-size:11px;text-transform:uppercase;letter-spacing:.1em;opacity:.7;transition:opacity .2s;border-top:1px solid color-mix(in srgb,var(--text) 20%,transparent)}
+#statusbar:hover{opacity:1}
+#ver-btn:hover{color:var(--acc2);border-color:color-mix(in srgb,var(--acc2) 60%,transparent);background:color-mix(in srgb,var(--acc2) 10%,transparent)}
+#sync-status{font-size:9px;padding:2px 8px;border:1px solid color-mix(in srgb,var(--text) 30%,transparent);color:color-mix(in srgb,var(--text) 70%,transparent);transition:all .15s;user-select:none}
+#sync-status:hover{color:var(--text);border-color:color-mix(in srgb,var(--text) 60%,transparent);background:color-mix(in srgb,var(--text) 10%,transparent)}
+#sync-status.syncing{color:var(--acc2);border-color:color-mix(in srgb,var(--acc2) 40%,transparent)}
+#sync-status.error{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 40%,transparent)}
+#sync-status.auto{border-left:3px solid var(--text)}
+#statusbar .left{display:flex;gap:16px;color:color-mix(in srgb,var(--text) 80%,transparent)}
+#statusbar .right{display:flex;gap:12px;align-items:center}
+.modal-bg{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(4px)}
+.modal{background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 80%,#1a1a2e),var(--bg));border:1px solid color-mix(in srgb,var(--text) 30%,transparent);box-shadow:0 0 40px color-mix(in srgb,var(--text) 10%,transparent);width:100%;max-height:90vh;overflow-y:auto;position:relative}
+.modal::before,.modal::after{content:'';position:absolute;width:12px;height:12px;border-color:var(--text);pointer-events:none}
+.modal::before{top:-1px;left:-1px;border-top:2px solid;border-left:2px solid}
+.modal::after{bottom:-1px;right:-1px;border-bottom:2px solid;border-right:2px solid}
+.modal-sm{max-width:420px}.modal-md{max-width:520px}.modal-lg{max-width:640px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid color-mix(in srgb,var(--text) 25%,transparent)}
+.modal-head h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.2em}
+.modal-head .close{background:none;border:none;color:color-mix(in srgb,var(--acc) 80%,transparent);font-family:inherit;font-size:16px;cursor:pointer;transition:color .15s}
+.modal-head .close:hover{color:var(--acc)}
+.modal-body{padding:16px}
+.modal-body label{display:block;font-size:10px;color:color-mix(in srgb,var(--text) 70%,transparent);text-transform:uppercase;letter-spacing:.15em;margin-bottom:4px}
+.modal-body select,.modal-body input[type=text],.modal-body input[type=password]{width:100%;background:color-mix(in srgb,var(--bg) 90%,black);border:1px solid color-mix(in srgb,var(--text) 35%,transparent);padding:8px 12px;color:var(--text);font-family:inherit;font-size:12px;outline:none;transition:border-color .15s}
+.modal-body select:focus,.modal-body input[type=text]:focus,.modal-body input[type=password]:focus{border-color:color-mix(in srgb,var(--text) 60%,transparent);box-shadow:0 0 8px color-mix(in srgb,var(--text) 15%,transparent)}
+.modal-body input[type=range]{width:100%;-webkit-appearance:none;height:3px;background:color-mix(in srgb,var(--text) 25%,transparent);outline:none;margin:8px 0}
+.modal-body input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--text);box-shadow:0 0 6px color-mix(in srgb,var(--text) 60%,transparent);cursor:pointer;transform:rotate(45deg)}
+.modal-body input[type=color]{width:100%;height:32px;border:1px solid color-mix(in srgb,var(--text) 35%,transparent);background:transparent;cursor:pointer;padding:0}
+.modal-body input[type=checkbox]{accent-color:var(--text)}
+.modal-body hr{border:none;height:1px;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--text) 50%,transparent),color-mix(in srgb,var(--acc) 50%,transparent),transparent);margin:12px 0}
+.field{margin-bottom:12px}
+.status-msg{padding:8px;border:1px solid color-mix(in srgb,var(--acc2) 40%,transparent);background:color-mix(in srgb,var(--acc2) 8%,transparent);font-size:11px;color:var(--acc2);margin-bottom:12px}
+#ctx-menu{position:fixed;z-index:60;background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 80%,#1a1a2e),var(--bg));border:1px solid color-mix(in srgb,var(--text) 35%,transparent);min-width:140px;padding:4px 0;display:none;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+#ctx-menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:6px 12px;font-family:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.1em;cursor:pointer;transition:background .15s}
+#ctx-menu .rename{color:var(--text)}#ctx-menu .rename:hover{background:color-mix(in srgb,var(--text) 15%,transparent)}
+#ctx-menu .delete{color:var(--acc)}#ctx-menu .delete:hover{background:color-mix(in srgb,var(--acc) 15%,transparent)}
+.rev-list{width:240px;border-right:1px solid color-mix(in srgb,var(--text) 20%,transparent);overflow-y:auto;flex-shrink:0}
+.rev-item{padding:10px 12px;cursor:pointer;border-bottom:1px solid color-mix(in srgb,var(--text) 10%,transparent);border-left:2px solid transparent;font-size:11px;color:color-mix(in srgb,var(--text) 75%,transparent);transition:all .15s}
+.rev-item:hover{background:color-mix(in srgb,var(--text) 8%,transparent)}
+.rev-item.active{background:color-mix(in srgb,var(--text) 12%,transparent);border-left-color:var(--text)}
+.rev-preview{flex:1;overflow:hidden;padding:16px;background:color-mix(in srgb,var(--bg) 90%,black);font-size:12px;color:color-mix(in srgb,var(--text) 75%,transparent);line-height:1.6;display:flex;flex-direction:column}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{padding:12px;border:1px solid color-mix(in srgb,var(--text) 20%,transparent);background:color-mix(in srgb,var(--text) 4%,transparent)}
+.stat-card .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.15em}
+.stat-card .val{font-size:18px;margin-top:2px}
+.chart{display:flex;align-items:flex-end;gap:1px;height:96px;padding:8px;border:1px solid color-mix(in srgb,var(--text) 20%,transparent);background:color-mix(in srgb,var(--text) 3%,transparent)}
+.chart-bar{flex:1;background:linear-gradient(to top,color-mix(in srgb,var(--text) 80%,transparent),color-mix(in srgb,var(--acc) 50%,transparent));box-shadow:0 0 4px color-mix(in srgb,var(--text) 40%,transparent);transition:height .2s;position:relative;min-height:1px}
+.export-btn{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px;border:1px solid color-mix(in srgb,var(--text) 25%,transparent);background:none;color:color-mix(in srgb,var(--text) 85%,transparent);font-family:inherit;font-size:12px;text-transform:uppercase;letter-spacing:.1em;cursor:pointer;transition:all .15s;margin-bottom:6px}
+.export-btn:hover{border-color:color-mix(in srgb,var(--text) 50%,transparent);background:color-mix(in srgb,var(--text) 10%,transparent);color:var(--text)}
+.export-btn .tag{font-size:10px;opacity:.5}
+.cloud-card{display:flex;align-items:center;gap:8px;padding:12px;border:1px solid color-mix(in srgb,var(--text) 20%,transparent);background:color-mix(in srgb,var(--text) 4%,transparent);margin-bottom:8px}
+.cloud-card .info{flex:1;overflow:hidden}.cloud-card .name{font-size:12px;color:var(--text)}.cloud-card .sub{font-size:9px;color:color-mix(in srgb,var(--text) 55%,transparent);margin-top:2px}
+.provider-btn{padding:12px;border:1px solid color-mix(in srgb,var(--text) 25%,transparent);background:none;color:var(--text);font-family:inherit;font-size:12px;text-transform:uppercase;cursor:pointer;transition:all .15s;text-align:left}
+.provider-btn:hover{border-color:color-mix(in srgb,var(--text) 50%,transparent);background:color-mix(in srgb,var(--text) 10%,transparent)}
+.provider-btn .desc{font-size:9px;color:color-mix(in srgb,var(--text) 55%,transparent);margin-top:2px;text-transform:none}
+/* ── Split pane ─────────────────────────────────────────── */
+#split-container{display:flex;flex:1;overflow:hidden}
+#split-container>.pane{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+#split-container>.pane+.pane{border-left:1px solid color-mix(in srgb,var(--text) 20%,transparent)}
+.pane-bar{display:flex;align-items:center;gap:6px;padding:3px 8px;font-size:10px;border-bottom:1px solid color-mix(in srgb,var(--text) 15%,transparent);flex-shrink:0;background:color-mix(in srgb,var(--bg) 85%,black)}
+.pane-bar select{background:color-mix(in srgb,var(--bg) 90%,black);border:1px solid color-mix(in srgb,var(--text) 25%,transparent);color:var(--text);font-family:inherit;font-size:10px;padding:3px 6px;outline:none;text-transform:uppercase;letter-spacing:.1em;max-width:200px}
+.pane-bar .pane-close{background:none;border:none;color:color-mix(in srgb,var(--acc) 60%,transparent);font-family:inherit;font-size:14px;cursor:pointer;padding:2px 6px;transition:color .15s}
+.pane-bar .pane-close:hover{color:var(--acc)}
+.pane-bar .pane-label{color:color-mix(in srgb,var(--text) 50%,transparent);text-transform:uppercase;letter-spacing:.1em}
+.pane .editor-wrap-r{position:relative;flex:1;overflow:hidden}
+.pane .editor-hl-r{position:absolute;inset:0;padding:16px 32px;white-space:pre-wrap;word-wrap:break-word;pointer-events:none;overflow-y:auto;border:none}
+.pane .editor-hl-r .cm{color:var(--cm);opacity:1;filter:none}
+.pane .editor-r{position:absolute;inset:0;width:100%;height:100%;resize:none;outline:none;padding:16px 32px;border:none;color:transparent;caret-color:var(--acc);background:transparent;-webkit-text-fill-color:transparent}
+.pane .editor-r[readonly]{caret-color:transparent}
+/* ── Mobile backdrop ───────────────────────────────────── */
+#sb-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9}
+/* ── Responsive: tablets and phones ────────────────────── */
+@media(max-width:768px){
+  #sidebar{position:fixed;left:0;top:0;bottom:0;z-index:10;width:280px;min-width:280px;transform:translateX(0);transition:transform .3s ease}
+  #sidebar.closed{transform:translateX(-100%);width:280px;min-width:280px;opacity:1}
+  #sb-backdrop.open{display:block}
+  #editor-highlight{padding:16px 16px}
+  #editor{padding:16px 16px}
+  #topbar .shortcuts{display:none}
+  #topbar{padding:6px 10px}
+  #topbar button{padding:10px 6px;min-height:44px;display:flex;align-items:center}
+  #topbar .doc-title{font-size:12px}
+  #statusbar{flex-wrap:wrap;gap:6px;padding:8px 12px}
+  #statusbar .left{gap:10px}
+  #statusbar .right{gap:6px}
+  #ver-btn,#sync-status,#hemi-badge{font-size:10px;padding:6px 10px;min-height:36px;display:inline-flex;align-items:center}
+  .modal{max-width:100%!important;margin:8px;max-height:calc(100vh - 16px);border-radius:0}
+  .modal-lg{max-width:100%!important}
+  .modal-head{padding:12px}
+  .modal-body{padding:12px}
+  .btn{padding:10px 12px;font-size:12px;min-height:44px}
+  .tool-btn{padding:12px;font-size:12px;min-height:44px}
+  .doc-item{padding:12px;min-height:44px}
+  .export-btn{padding:14px 12px;min-height:48px}
+  .provider-btn{padding:14px 12px;min-height:48px}
+  .cloud-card{padding:12px 10px;flex-wrap:wrap;gap:6px}
+  .cloud-card .btn{min-height:36px}
+  .rev-list{width:180px}
+  .rev-item{padding:12px 10px;min-height:44px}
+  .stat-grid{grid-template-columns:1fr 1fr;gap:6px}
+  .stat-card{padding:10px}
+  .modal-body select,.modal-body input[type=text],.modal-body input[type=password]{padding:12px;font-size:14px;min-height:44px}
+  .modal-body input[type=color]{height:44px}
+  #right-pane{display:none!important}
+  .sb-actions{padding:8px;gap:6px}
+  .sb-actions .btn{flex:1;min-height:44px;font-size:12px}
+  #ctx-menu button{padding:12px;min-height:44px;font-size:12px}
+}
+@media(max-width:480px){
+  #sidebar{width:100%;min-width:100%}
+  #sidebar.closed{width:100%;min-width:100%}
+  #editor-highlight{padding:12px 12px}
+  #editor{padding:12px 12px}
+  .rev-list{width:100%;border-right:none;border-bottom:1px solid color-mix(in srgb,var(--text) 20%,transparent);max-height:30vh}
+  .modal-lg .rev-list+.rev-preview{min-height:40vh}
+  .modal-lg>div:last-child{flex-direction:column}
+  .stat-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="sb-backdrop" onclick="W.closeSidebar()"></div>
+<!-- Sidebar -->
+<div id="sidebar">
+  <div class="sb-header">
+    <h1 class="glitch" onclick="W.oblique()" style="cursor:pointer" title="Need inspiration?">WRITER<span style="color:var(--acc)">_</span></h1>
+    <p>// neural_draft_v2.1</p>
+  </div>
+  <div class="sb-actions">
+    <button class="btn btn-cyan" style="flex:1" onclick="W.createDoc()">+ Doc</button>
+    <button class="btn btn-pink" onclick="W.createFolder()">+ Folder</button>
+  </div>
+  <div class="sb-docs" id="doc-list"></div>
+  <div class="sb-tools">
+    <button class="tool-btn" onclick="W.openModal('stats')">&gt; statistics</button>
+    <button class="tool-btn" onclick="W.openModal('revisions')">&gt; versions</button>
+    <button class="tool-btn yellow" onclick="W.openModal('export')">&gt; export</button>
+    <button class="tool-btn yellow" onclick="W.openModal('import')">&gt; import</button>
+    <button class="tool-btn pink" onclick="W.openModal('cloud')">&gt; cloud_sync</button>
+    <button class="tool-btn" onclick="W.openModal('settings')">&gt; config</button>
+  </div>
+</div>
+<!-- Editor area -->
+<div id="editor-area">
+  <div id="topbar">
+    <button onclick="W.toggleSidebar()" title="Ctrl+B"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="3" width="14" height="2"/><rect x="1" y="7" width="10" height="2"/><rect x="1" y="11" width="14" height="2"/></svg></button>
+    <span class="doc-title" id="topbar-title" onclick="W.startRenameInline()" title="Click to rename" style="cursor:pointer"></span>
+    <span class="shortcuts"><span onclick="W.toggleSidebar()" title="Toggle sidebar (Ctrl+B)">^B:panel</span> // <span onclick="W.createDoc()" title="New document (Ctrl+N)">^N:new</span> // <span onclick="W.saveDoc()" title="Save (Ctrl+S)">^S:save</span> // <span onclick="W.toggleSplit()" title="Split view (Ctrl+\\)">^\\:split</span></span>
+
+  </div>
+  <div id="conflict-banner" style="display:none"></div>
+  <div id="split-container">
+    <div class="pane" id="left-pane">
+      <div id="editor-wrap">
+        <div id="editor-highlight" class="flicker"></div>
+        <textarea id="editor" placeholder=">> begin_transmission..." spellcheck="true"></textarea>
+      </div>
+    </div>
+    <div class="pane" id="right-pane" style="display:none">
+      <div class="pane-bar">
+        <span class="pane-label">open:</span>
+        <select id="rp-select" onchange="W.rpSelect(this.value)"></select>
+        <div style="flex:1"></div>
+        <button class="pane-close" onclick="W.closeSplit()">[x]</button>
+      </div>
+      <div class="editor-wrap-r">
+        <div class="editor-hl-r" id="rp-highlight"></div>
+        <textarea class="editor-r" id="rp-editor" placeholder="// select a document or version..." spellcheck="true"></textarea>
+      </div>
+    </div>
+  </div>
+  <div id="statusbar">
+    <div class="left"><span id="offline-badge" style="display:none;font-size:9px;padding:2px 6px;border:1px solid color-mix(in srgb,var(--acc) 50%,transparent);color:var(--acc)">offline</span><span id="wc">words:0</span><span id="cc">chars:0</span><span id="goal-display"></span></div>
+    <div class="right"><span id="hemi-badge" style="display:none;font-size:9px;padding:2px 6px;border:1px solid color-mix(in srgb,var(--acc) 50%,transparent);color:var(--acc)">hemingway_lock</span><span id="ver-btn" onclick="W.saveNamedVersion()" style="font-size:9px;padding:2px 8px;border:1px solid color-mix(in srgb,var(--acc2) 30%,transparent);color:color-mix(in srgb,var(--acc2) 70%,transparent);cursor:pointer;transition:all .15s;user-select:none" title="Save a named version">save_version</span><span id="sync-status" style="display:none;cursor:pointer" title="Click to sync now, right-click to toggle auto-sync"></span><span id="save-status"></span></div>
+  </div>
+</div>
+</div>
+<!-- Context menu -->
+<div id="ctx-menu"><button class="rename" onclick="W.renameCtx()">&gt; rename</button><button class="rename" id="ctx-move" onclick="W.moveCtx()" style="display:none">&gt; move_to...</button><button class="delete" onclick="W.deleteCtx()">&gt; delete</button></div>
+<!-- Modal container -->
+<div id="modal-root"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// WRITER_ — Complete app in vanilla JS
+// ═══════════════════════════════════════════════════════════
+//
+// ── CONFIGURATION ─────────────────────────────────────────
+// To enable "Sign in with Google/Dropbox/OneDrive", register
+// a free OAuth app with each provider and paste the client ID
+// below. Set the redirect URI to your deployed site's URL.
+// Leave blank to hide that provider's sign-in button.
+//
+// Google & OneDrive also need a client secret set server-side:
+//   npx wrangler pages secret put GOOGLE_CLIENT_SECRET --project-name writer
+//   npx wrangler pages secret put ONEDRIVE_CLIENT_SECRET --project-name writer
+// Dropbox works without a secret (pure PKCE).
+//
+const CONFIG = {
+  GOOGLE_CLIENT_ID:   '944165390471-htiaundshtp09tplu32dmcvspbiagar7.apps.googleusercontent.com',
+  DROPBOX_CLIENT_ID:  '',  // https://www.dropbox.com/developers/apps
+  ONEDRIVE_CLIENT_ID: '', // https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps
+};
+// ──────────────────────────────────────────────────────────
+
+const W = {};
+
+// ── State ──────────────────────────────────────────────────
+W.docs = [];       // {id,title,content,folderId,createdAt,updatedAt,wordCountGoal,charCountGoal}
+W.folders = [];    // {id,name,createdAt}
+W.revisions = [];  // {id,documentId,content,wordCount,createdAt,name?}
+W.sessions = [];   // {id,documentId,wordsWritten,startedAt,endedAt}
+W.clouds = [];     // {id,provider,name,config,lastSyncAt,createdAt}
+W.currentId = null;
+W.settings = {};
+W.ctxTarget = null;
+W.saveTimer = null;
+W.revTimer = null;
+W.sessionStart = Date.now();
+W.sessionStartWords = 0;
+W.autoSyncTimer = null;
+W.isSyncing = false;
+W.cloudPushTimer = null;
+W.collapsedFolders = new Set();
+W.dragDocId = null;
+
+const DEFAULTS = {theme:'cyberpunk',fontFamily:'mono',fontSize:'18',lineSpacing:'1.8',
+  paperColor:'#0a0a12',textColor:'#05d9e8',soundEnabled:'false',soundType:'mechanical',hemingwayMode:'false',commentOpen:'%%',commentClose:'%%',commentColor:'#555555'};
+
+// ── IndexedDB ──────────────────────────────────────────────
+W.db = null;
+W.initDB = () => new Promise((resolve, reject) => {
+  const req = indexedDB.open('writer-cf', 1);
+  req.onupgradeneeded = e => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains('documents')) {
+      const ds = db.createObjectStore('documents', {keyPath:'id'});
+      ds.createIndex('by-updated','updatedAt');
+    }
+    if (!db.objectStoreNames.contains('folders')) db.createObjectStore('folders', {keyPath:'id'});
+    if (!db.objectStoreNames.contains('revisions')) {
+      const rs = db.createObjectStore('revisions', {keyPath:'id'});
+      rs.createIndex('by-document','documentId');
+    }
+    if (!db.objectStoreNames.contains('sessions')) db.createObjectStore('sessions', {keyPath:'id'});
+    if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', {keyPath:'key'});
+    if (!db.objectStoreNames.contains('clouds')) db.createObjectStore('clouds', {keyPath:'id'});
+  };
+  req.onsuccess = e => { W.db = e.target.result; resolve(); };
+  req.onerror = e => reject(e);
+});
+
+W.uid = () => crypto.randomUUID();
+W.dbPut = (store, obj) => new Promise((r,j) => { const tx = W.db.transaction(store,'readwrite'); tx.objectStore(store).put(obj); tx.oncomplete=()=>r(); tx.onerror=e=>j(e); });
+W.dbGet = (store, key) => new Promise((r,j) => { const tx = W.db.transaction(store); const req = tx.objectStore(store).get(key); req.onsuccess=()=>r(req.result); req.onerror=e=>j(e); });
+W.dbAll = (store) => new Promise((r,j) => { const tx = W.db.transaction(store); const req = tx.objectStore(store).getAll(); req.onsuccess=()=>r(req.result); req.onerror=e=>j(e); });
+W.dbDel = (store, key) => new Promise((r,j) => { const tx = W.db.transaction(store,'readwrite'); tx.objectStore(store).delete(key); tx.oncomplete=()=>r(); tx.onerror=e=>j(e); });
+W.dbIdx = (store, idx, key) => new Promise((r,j) => { const tx = W.db.transaction(store); const req = tx.objectStore(store).index(idx).getAll(key); req.onsuccess=()=>r(req.result); req.onerror=e=>j(e); });
+
+// ── Helpers ────────────────────────────────────────────────
+W.wc = s => { const t = s.trim(); return t ? t.split(/\s+/).length : 0; };
+W.cc = s => s.length;
+W.now = () => Date.now();
+
+// ── Settings ───────────────────────────────────────────────
+W.loadSettings = async () => {
+  const all = await W.dbAll('settings');
+  W.settings = {...DEFAULTS};
+  for (const s of all) W.settings[s.key] = s.value;
+};
+W.setSetting = async (k, v) => { W.settings[k] = v; await W.dbPut('settings', {key:k, value:v}); W.applySettings(); };
+W.applySettings = () => {
+  const ed = document.getElementById('editor');
+  const hl = document.getElementById('editor-highlight');
+  const s = W.settings;
+  const r = document.documentElement.style;
+  // Set CSS custom properties — drives the entire UI theme
+  r.setProperty('--bg', s.paperColor);
+  r.setProperty('--text', s.textColor);
+  r.setProperty('--acc', s.accentColor || '#ff2a6d');
+  r.setProperty('--acc2', s.accent2Color || '#f9f002');
+  r.setProperty('--cm', s.commentColor || '#555555');
+  const ff = s.fontFamily === 'serif' ? 'Georgia,"Times New Roman",serif' : s.fontFamily === 'sans' ? '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif' : '"Courier New",monospace';
+  // Textarea (invisible text, visible caret)
+  ed.style.fontSize = s.fontSize + 'px';
+  ed.style.lineHeight = s.lineSpacing;
+  ed.style.fontFamily = ff;
+  // Highlight overlay (visible text)
+  hl.style.backgroundColor = s.paperColor;
+  hl.style.color = s.textColor;
+  hl.style.fontSize = s.fontSize + 'px';
+  hl.style.lineHeight = s.lineSpacing;
+  hl.style.fontFamily = ff;
+  hl.style.textShadow = `0 0 1px ${s.textColor}40`;
+  document.getElementById('topbar').style.backgroundColor = s.paperColor;
+  document.getElementById('statusbar').style.backgroundColor = s.paperColor;
+  document.getElementById('hemi-badge').style.display = s.hemingwayMode === 'true' ? '' : 'none';
+  W.renderHighlight();
+};
+
+// ── Highlight rendering (%%...%% comments) ─────────────────
+W.renderHighlight = () => {
+  const ed = document.getElementById('editor');
+  const hl = document.getElementById('editor-highlight');
+  hl.innerHTML = W.highlightComments(ed.value) + '\n';
+};
+
+// Shared comment highlighting logic (supports different open/close markers)
+W.highlightComments = text => {
+  const open = W.settings.commentOpen || '%%';
+  const close = W.settings.commentClose || '%%';
+  const eOpen = W.escHL(open);
+  const eClose = W.escHL(close);
+  let html = '';
+  let pos = 0;
+  while (pos < text.length) {
+    const start = text.indexOf(open, pos);
+    if (start === -1) { html += W.escHL(text.slice(pos)); break; }
+    // Found open marker — look for close
+    const afterOpen = start + open.length;
+    const end = text.indexOf(close, afterOpen);
+    if (end === -1) {
+      // Unclosed — render rest as plain text including the open marker
+      html += W.escHL(text.slice(pos));
+      break;
+    }
+    // Render text before the comment, then the comment
+    html += W.escHL(text.slice(pos, start));
+    html += '<span class="cm">' + eOpen + W.escHL(text.slice(afterOpen, end)) + eClose + '</span>';
+    pos = end + close.length;
+  }
+  return html;
+};
+W.escHL = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// Sync scroll between textarea and highlight overlay
+document.getElementById('editor').addEventListener('scroll', () => {
+  const ed = document.getElementById('editor');
+  const hl = document.getElementById('editor-highlight');
+  hl.scrollTop = ed.scrollTop;
+  hl.scrollLeft = ed.scrollLeft;
+});
+
+// ── Load all data ──────────────────────────────────────────
+W.loadAll = async () => {
+  W.docs = (await W.dbAll('documents')).sort((a,b) => b.updatedAt - a.updatedAt);
+  W.folders = await W.dbAll('folders');
+  W.revisions = await W.dbAll('revisions');
+  W.sessions = await W.dbAll('sessions');
+  W.clouds = await W.dbAll('clouds');
+  await W.loadSettings();
+};
+
+// ── Render doc list ────────────────────────────────────────
+W.renderDocs = () => {
+  const el = document.getElementById('doc-list');
+  let html = '';
+  // Folders
+  for (const f of W.folders) {
+    const docsIn = W.docs.filter(d => d.folderId === f.id);
+    const collapsed = W.collapsedFolders.has(f.id);
+    const arrow = collapsed ? '&#9654;' : '&#9660;';
+    html += `<div class="folder-item" onclick="W.toggleFolder('${f.id}')" oncontextmenu="W.ctxFolder(event,'${f.id}')" ondragover="W.folderDragOver(event,'${f.id}')" ondragleave="W.folderDragLeave(event)" ondrop="W.folderDrop(event,'${f.id}')" data-folder="${f.id}"><span class="arrow">${arrow}</span><span class="fname">${W.esc(f.name)}/</span><span class="fcount">${docsIn.length}</span></div>`;
+    if (!collapsed) {
+      for (const d of docsIn) html += W.docItemHTML(d, true);
+    }
+  }
+  // Drop zone for moving docs to root
+  html += `<div class="root-drop" ondragover="W.rootDragOver(event)" ondragleave="W.rootDragLeave(event)" ondrop="W.rootDrop(event)"></div>`;
+  // Root docs
+  for (const d of W.docs.filter(d => !d.folderId)) html += W.docItemHTML(d, false);
+  if (!W.docs.length && !W.folders.length) html = '<div style="padding:16px;text-align:center;font-size:11px;color:color-mix(in srgb,var(--text) 50%,transparent)">// no files found</div>';
+  el.innerHTML = html;
+};
+W.docItemHTML = (d, nested) => {
+  const active = d.id === W.currentId ? ' active' : '';
+  const nest = nested ? ' nested' : '';
+  const words = W.wc(d.content);
+  const date = new Date(d.updatedAt);
+  const ds = date.toDateString() === new Date().toDateString() ? date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : date.toLocaleDateString([],{month:'short',day:'numeric'});
+  return `<div class="doc-item${active}${nest}" draggable="true" ondragstart="W.docDragStart(event,'${d.id}')" ondragend="W.docDragEnd(event)" onclick="W.selectDoc('${d.id}')" oncontextmenu="W.ctxDoc(event,'${d.id}')" data-doc="${d.id}"><div class="title">${W.esc(d.title)}</div><div class="meta">${ds} // ${words}w</div></div>`;
+};
+W.esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// ── Folder toggle ──────────────────────────────────────────
+W.toggleFolder = id => {
+  if (W.collapsedFolders.has(id)) W.collapsedFolders.delete(id);
+  else W.collapsedFolders.add(id);
+  W.renderDocs();
+};
+
+// ── Drag and drop ──────────────────────────────────────────
+W.docDragStart = (e, id) => {
+  W.dragDocId = id;
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', id);
+};
+W.docDragEnd = e => {
+  W.dragDocId = null;
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+};
+W.folderDragOver = (e, folderId) => {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drop-target');
+};
+W.folderDragLeave = e => {
+  e.currentTarget.classList.remove('drop-target');
+};
+W.folderDrop = async (e, folderId) => {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drop-target');
+  const docId = W.dragDocId || e.dataTransfer.getData('text/plain');
+  if (!docId) return;
+  const doc = W.docs.find(d => d.id === docId);
+  if (!doc || doc.folderId === folderId) return;
+  doc.folderId = folderId;
+  doc.updatedAt = W.now();
+  await W.dbPut('documents', doc);
+  W.collapsedFolders.delete(folderId);
+  W.renderDocs();
+  W.scheduleCloudPush();
+};
+W.rootDragOver = e => {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drop-target');
+};
+W.rootDragLeave = e => {
+  e.currentTarget.classList.remove('drop-target');
+};
+W.rootDrop = async e => {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drop-target');
+  const docId = W.dragDocId || e.dataTransfer.getData('text/plain');
+  if (!docId) return;
+  const doc = W.docs.find(d => d.id === docId);
+  if (!doc || !doc.folderId) return;
+  doc.folderId = null;
+  doc.updatedAt = W.now();
+  await W.dbPut('documents', doc);
+  W.renderDocs();
+  W.scheduleCloudPush();
+};
+
+// ── Document CRUD ──────────────────────────────────────────
+W.createDoc = async () => {
+  const doc = {id:W.uid(),title:'Untitled',content:'',folderId:null,createdAt:W.now(),updatedAt:W.now(),wordCountGoal:null,charCountGoal:null};
+  await W.dbPut('documents', doc);
+  W.docs.unshift(doc);
+  W.selectDoc(doc.id);
+  W.renderDocs();
+  W.startRenameInline();
+  W.scheduleCloudPush();
+};
+W.selectDoc = async id => {
+  // Save session for previous doc
+  if (W.currentId) {
+    const ed = document.getElementById('editor');
+    const words = W.wc(ed.value) - W.sessionStartWords;
+    if (words > 0) { await W.dbPut('sessions', {id:W.uid(),documentId:W.currentId,wordsWritten:words,startedAt:W.sessionStart,endedAt:W.now()}); }
+  }
+  W.currentId = id;
+  const doc = W.docs.find(d => d.id === id);
+  if (!doc) return;
+  const ed = document.getElementById('editor');
+  ed.value = doc.content;
+  document.getElementById('topbar-title').textContent = doc.title;
+  W.renderHighlight();
+  W.updateCounts();
+  W.sessionStart = W.now();
+  W.sessionStartWords = W.wc(doc.content);
+  W.renderDocs();
+  if (W.isMobile()) W.closeSidebar();
+  if (W.splitOpen) W.rpPopulateSelect();
+  ed.focus();
+};
+W.saveDoc = async () => {
+  const doc = W.docs.find(d => d.id === W.currentId);
+  if (!doc) return;
+  doc.content = document.getElementById('editor').value;
+  doc.updatedAt = W.now();
+  await W.dbPut('documents', doc);
+  document.getElementById('save-status').textContent = 'saved:' + new Date().toLocaleTimeString();
+  // If right pane shows same doc, sync it (but preserve cursor)
+  if (W.splitOpen && W.rpDocId === W.currentId) {
+    const rp = document.getElementById('rp-editor');
+    if (rp.value !== doc.content && document.activeElement !== rp) { rp.value = doc.content; W.rpRenderHL(); }
+  }
+  W.scheduleCloudPush();
+};
+W.deleteDoc = async id => {
+  if (!confirm('Delete this document?')) return;
+  // Delete Google Doc from Drive if it exists
+  for (const c of W.clouds) {
+    try {
+      const cfg = JSON.parse(c.config);
+      if (cfg.gdriveFiles?.[id]) {
+        const config = await W.ensureFreshToken(c);
+        await fetch(`https://www.googleapis.com/drive/v3/files/${cfg.gdriveFiles[id]}`,{method:'DELETE',headers:{Authorization:'Bearer '+config.accessToken}}).catch(()=>{});
+        delete cfg.gdriveFiles[id];
+        c.config = JSON.stringify(cfg);
+        await W.dbPut('clouds', c);
+      }
+    } catch {}
+  }
+  await W.dbDel('documents', id);
+  W.docs = W.docs.filter(d => d.id !== id);
+  if (W.currentId === id) { W.currentId = null; document.getElementById('editor').value = ''; document.getElementById('editor-highlight').innerHTML = '\n'; document.getElementById('topbar-title').textContent = ''; }
+  if (W.docs.length && !W.currentId) W.selectDoc(W.docs[0].id);
+  W.renderDocs();
+  // Push immediately (push only, no pull — pull would re-import the deleted doc)
+  if (W.clouds.length && !W.isSyncing) {
+    clearTimeout(W.cloudPushTimer);
+    for (const c of W.clouds) W.cloudBackup(c.id, true);
+  }
+};
+W.renameDoc = async id => {
+  const doc = W.docs.find(d => d.id === id);
+  if (!doc) return;
+  const name = prompt('New title:', doc.title);
+  if (!name || !name.trim()) return;
+  doc.title = name.trim();
+  await W.dbPut('documents', doc);
+  if (id === W.currentId) document.getElementById('topbar-title').textContent = doc.title;
+  W.renderDocs();
+};
+W.startRenameInline = () => {
+  const doc = W.docs.find(d => d.id === W.currentId);
+  if (!doc) return;
+  const el = document.getElementById('topbar-title');
+  if (el.querySelector('input')) return; // already editing
+  const origText = el.textContent;
+  el.textContent = '';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = doc.title;
+  input.style.cssText = 'background:transparent;border:none;border-bottom:1px solid var(--text);color:var(--text);font-family:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.15em;outline:none;width:200px;padding:0;margin:0';
+  let done = false;
+  const finish = async () => {
+    if (done) return; done = true;
+    const v = input.value.trim();
+    if (v && v !== doc.title) { doc.title = v; await W.dbPut('documents', doc); W.renderDocs(); }
+    el.textContent = doc.title;
+  };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } if (e.key === 'Escape') { input.value = doc.title; input.blur(); } });
+  input.addEventListener('blur', finish);
+  el.appendChild(input);
+  input.focus();
+  input.select();
+};
+
+// ── Folders ────────────────────────────────────────────────
+W.createFolder = async () => {
+  const f = {id:W.uid(),name:'Untitled',createdAt:W.now()};
+  await W.dbPut('folders', f);
+  W.folders.push(f);
+  W.renderDocs();
+  // Inline rename the new folder
+  const el = document.querySelector(`[data-folder="${f.id}"] .fname`);
+  if (!el) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = f.name;
+  input.style.cssText = 'background:transparent;border:none;border-bottom:1px solid var(--acc);color:var(--acc);font-family:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.15em;outline:none;width:100%;padding:0';
+  let done = false;
+  const finish = async () => {
+    if (done) return; done = true;
+    const v = input.value.trim();
+    if (v) { f.name = v; await W.dbPut('folders', f); }
+    W.renderDocs();
+  };
+  input.addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); input.blur(); } if (e.key==='Escape') { done=true; W.renderDocs(); } });
+  input.addEventListener('blur', finish);
+  el.textContent = '';
+  el.appendChild(input);
+  input.focus();
+  input.select();
+};
+W.deleteFolder = async id => {
+  if (!confirm('Delete this folder?')) return;
+  for (const d of W.docs.filter(d => d.folderId === id)) { d.folderId = null; d.updatedAt = W.now(); await W.dbPut('documents', d); }
+  await W.dbDel('folders', id);
+  W.folders = W.folders.filter(f => f.id !== id);
+  W.renderDocs();
+  if (W.clouds.length && !W.isSyncing) {
+    clearTimeout(W.cloudPushTimer);
+    for (const c of W.clouds) W.cloudBackup(c.id, true);
+  }
+};
+W.renameFolder = async id => {
+  const f = W.folders.find(fl => fl.id === id);
+  if (!f) return;
+  const el = document.querySelector(`[data-folder="${id}"] .fname`);
+  if (!el) { const name = prompt('New folder name:', f.name); if (name?.trim()) { f.name = name.trim(); await W.dbPut('folders', f); W.renderDocs(); } return; }
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = f.name;
+  input.style.cssText = 'background:transparent;border:none;border-bottom:1px solid var(--acc);color:var(--acc);font-family:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.15em;outline:none;width:100%;padding:0';
+  let done = false;
+  const finish = async () => {
+    if (done) return; done = true;
+    const v = input.value.trim();
+    if (v && v !== f.name) { f.name = v; await W.dbPut('folders', f); }
+    W.renderDocs();
+  };
+  input.addEventListener('keydown', e => { e.stopPropagation(); if (e.key==='Enter') { e.preventDefault(); input.blur(); } if (e.key==='Escape') { done=true; W.renderDocs(); } });
+  input.addEventListener('blur', finish);
+  input.addEventListener('click', e => e.stopPropagation());
+  el.textContent = '';
+  el.appendChild(input);
+  input.focus();
+  input.select();
+};
+
+// ── Context menu ───────────────────────────────────────────
+W.ctxDoc = (e, id) => { e.preventDefault(); W.ctxTarget = {type:'doc',id}; W.showCtx(e.clientX, e.clientY, true); };
+W.ctxFolder = (e, id) => { e.preventDefault(); W.ctxTarget = {type:'folder',id}; W.showCtx(e.clientX, e.clientY, false); };
+W.showCtx = (x, y, showMove) => {
+  const m = document.getElementById('ctx-menu');
+  document.getElementById('ctx-move').style.display = showMove && W.folders.length ? '' : 'none';
+  m.style.display='block';
+  // Keep menu on screen
+  const mw = 180, mh = 120;
+  m.style.left = Math.min(x, window.innerWidth - mw) + 'px';
+  m.style.top = Math.min(y, window.innerHeight - mh) + 'px';
+};
+W.hideCtx = () => { const m=document.getElementById('ctx-menu'); m.style.display='none'; m.innerHTML='<button class="rename" onclick="W.renameCtx()">&gt; rename</button><button class="rename" id="ctx-move" onclick="W.moveCtx()" style="display:none">&gt; move_to...</button><button class="delete" onclick="W.deleteCtx()">&gt; delete</button>'; W.ctxTarget=null; };
+W.renameCtx = () => { if (!W.ctxTarget) return; W.ctxTarget.type==='doc' ? W.renameDoc(W.ctxTarget.id) : W.renameFolder(W.ctxTarget.id); W.hideCtx(); };
+W.deleteCtx = () => { if (!W.ctxTarget) return; W.ctxTarget.type==='doc' ? W.deleteDoc(W.ctxTarget.id) : W.deleteFolder(W.ctxTarget.id); W.hideCtx(); };
+W.moveCtx = () => {
+  if (!W.ctxTarget || W.ctxTarget.type !== 'doc') return;
+  const doc = W.docs.find(d => d.id === W.ctxTarget.id);
+  if (!doc) { W.hideCtx(); return; }
+  // Replace context menu contents with folder list
+  const m = document.getElementById('ctx-menu');
+  let html = '<div style="padding:6px 12px;font-size:9px;color:color-mix(in srgb,var(--text) 50%,transparent);text-transform:uppercase;letter-spacing:.1em">move to:</div>';
+  if (doc.folderId) {
+    html += `<button style="display:block;width:100%;text-align:left;background:none;border:none;padding:8px 12px;font-family:inherit;font-size:11px;color:var(--text);cursor:pointer;text-transform:uppercase;letter-spacing:.1em" onmouseover="this.style.background='color-mix(in srgb,var(--text) 10%,transparent)'" onmouseout="this.style.background='none'" onclick="W.moveDocTo('${doc.id}',null)">&gt; root</button>`;
+  }
+  for (const f of W.folders) {
+    if (f.id === doc.folderId) continue;
+    html += `<button style="display:block;width:100%;text-align:left;background:none;border:none;padding:8px 12px;font-family:inherit;font-size:11px;color:var(--acc);cursor:pointer;text-transform:uppercase;letter-spacing:.1em" onmouseover="this.style.background='color-mix(in srgb,var(--acc) 10%,transparent)'" onmouseout="this.style.background='none'" onclick="W.moveDocTo('${doc.id}','${f.id}')">&gt; ${W.esc(f.name)}/</button>`;
+  }
+  m.innerHTML = html;
+};
+W.moveDocTo = async (docId, folderId) => {
+  const doc = W.docs.find(d => d.id === docId);
+  if (!doc) return;
+  doc.folderId = folderId;
+  doc.updatedAt = W.now();
+  await W.dbPut('documents', doc);
+  if (folderId) W.collapsedFolders.delete(folderId);
+  W.hideCtx();
+  // Restore context menu HTML
+  document.getElementById('ctx-menu').innerHTML = '<button class="rename" onclick="W.renameCtx()">&gt; rename</button><button class="rename" id="ctx-move" onclick="W.moveCtx()" style="display:none">&gt; move_to...</button><button class="delete" onclick="W.deleteCtx()">&gt; delete</button>';
+  W.renderDocs();
+};
+document.addEventListener('click', W.hideCtx);
+
+// ── Touch long-press for context menu (mobile) ─────────────
+(function(){
+  let timer, tx, ty, target;
+  const THRESHOLD = 10; // max movement before cancel
+  document.getElementById('doc-list').addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    tx = t.clientX; ty = t.clientY;
+    target = e.target.closest('.doc-item, .folder-item');
+    if (!target) return;
+    timer = setTimeout(() => {
+      e.preventDefault();
+      const docId = target.dataset?.doc;
+      const folderId = target.dataset?.folder;
+      if (docId) W.ctxDoc({preventDefault(){},clientX:tx,clientY:ty}, docId);
+      else if (folderId) W.ctxFolder({preventDefault(){},clientX:tx,clientY:ty}, folderId);
+    }, 500);
+  }, {passive:false});
+  document.getElementById('doc-list').addEventListener('touchmove', e => {
+    if (!timer) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX-tx)>THRESHOLD || Math.abs(t.clientY-ty)>THRESHOLD) clearTimeout(timer);
+  });
+  document.getElementById('doc-list').addEventListener('touchend', () => clearTimeout(timer));
+  document.getElementById('doc-list').addEventListener('touchcancel', () => clearTimeout(timer));
+})();
+
+// ── Editor events ──────────────────────────────────────────
+W.updateCounts = () => {
+  const v = document.getElementById('editor').value;
+  document.getElementById('wc').textContent = 'words:' + W.wc(v);
+  document.getElementById('cc').textContent = 'chars:' + W.cc(v);
+  const doc = W.docs.find(d => d.id === W.currentId);
+  const gd = document.getElementById('goal-display');
+  if (doc && doc.wordCountGoal) { const p = Math.min(100, Math.round(W.wc(v)/doc.wordCountGoal*100)); gd.textContent = `${W.wc(v)}/${doc.wordCountGoal}w (${p}%)`; gd.style.color='var(--acc2)'; }
+  else gd.textContent = '';
+};
+document.getElementById('editor').addEventListener('input', () => {
+  W.renderHighlight();
+  W.updateCounts();
+  clearTimeout(W.saveTimer);
+  W.saveTimer = setTimeout(W.saveDoc, 1000);
+  clearTimeout(W.revTimer);
+  W.revTimer = setTimeout(() => {
+    const doc = W.docs.find(d => d.id === W.currentId);
+    const content = document.getElementById('editor').value;
+    if (doc) W.dbPut('revisions', {id:W.uid(),documentId:doc.id,content,wordCount:W.wc(content),createdAt:W.now()});
+  }, 300000);
+});
+document.getElementById('editor').addEventListener('keydown', e => {
+  const s = W.settings;
+  if (s.hemingwayMode==='true' && (e.key==='Backspace'||e.key==='Delete')) { e.preventDefault(); return; }
+  // Desktop: play sounds from keydown (works because physical keyboard events are user gestures)
+  if (!W.isMobile() && s.soundEnabled==='true') { if (e.key==='Enter') W.playReturn(s.soundType); else if (e.key.length===1) W.playKeystroke(s.soundType); }
+  if ((e.ctrlKey||e.metaKey) && e.key==='s') { e.preventDefault(); W.saveDoc(); const doc = W.docs.find(d=>d.id===W.currentId); if(doc) W.dbPut('revisions',{id:W.uid(),documentId:doc.id,content:document.getElementById('editor').value,wordCount:W.wc(document.getElementById('editor').value),createdAt:W.now()}); }
+});
+// Mobile: play sounds from input event (virtual keyboard keydown isn't a user gesture on Android)
+document.getElementById('editor').addEventListener('input', e => {
+  if (W.isMobile() && W.settings.soundEnabled==='true') {
+    if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') W.playReturn(W.settings.soundType);
+    else if (e.inputType === 'insertText' || e.inputType === 'insertCompositionText') W.playKeystroke(W.settings.soundType);
+  }
+});
+
+// ── Sidebar toggle ─────────────────────────────────────────
+W.isMobile = () => window.innerWidth <= 768;
+W.OBLIQUE = [
+"Abandon normal instruments","Accept advice","Accretion","A line has two sides",
+"Allow an easement (an alarm leaks away)","Are there sections? Consider transitions",
+"Ask people to work against their better judgement","Ask your body",
+"Assemble some of the instruments in a group and treat the group",
+"Balance the consistency principle with the inconsistency principle",
+"Be dirty","Be extravagant","Be less critical more often","Breathe more deeply",
+"Bridges -Loss of self-confidence","Cascades","Change instrument roles",
+"Change nothing and continue with immaculate consistency","Children's voices -Loss of the need to be understood",
+"Cluster analysis","Consider different fading systems",
+"Consult other sources -Loss of something held dear","Convert a melodic element into a rhythmic element",
+"Courage!","Cut a vital connection","Decorate, decorate","Define an area as 'safe' and use it as an anchor",
+"Destroy -Loss of ambition or willpower","Destroy nothing; destroy the most important thing",
+"Discard an axiom","Disconnect from desire","Discover the recipes you are using and abandon them",
+"Distorting time","Do nothing for as long as possible","Don't be afraid of things because they're easy to do",
+"Don't be frightened of cliches","Don't be frightened to display your talents",
+"Don't break the silence","Don't stress one thing more than another",
+"Do something boring","Do the washing up","Do the words need changing?",
+"Do we need holes?","Emphasize differences","Emphasize repetitions",
+"Emphasize the flaws","Faced with a choice, do both","Feed the recording back out of the medium",
+"Fill every beat with something","Find a safe part and use it as an anchor",
+"Get your neck massaged","Ghost echoes","Give the game away",
+"Give way to your worst impulse","Go outside. Shut the door.",
+"Go slowly all the way round the outside","Go to an extreme, move back to a more comfortable place",
+"Honor thy error as a hidden intention","How would you have done it?",
+"Humanize something free of error","Imagine the music as a moving chain or caterpillar",
+"Imagine the music as a series of disconnected events","Infinitesimal gradations",
+"Intentions -Loss of credibility","Into the impossible",
+"Is it finished?","Is something being collected?","Is the style right?",
+"Is there something happening here that is not music?","It is simply a matter of work",
+"Just carry on","Left channel, right channel, centre channel",
+"Listen in total darkness, or in a very large room, very quietly",
+"Listen to the quiet voice","Look at a very small object, look at its centre",
+"Look at the order in which you do things","Look closely at the most embarrassing details and amplify them",
+"Lost in useless territory","Lowest common denominator check -Loss of opportunity is failure",
+"Make a blank valuable by putting it in an exquisite frame",
+"Make an exhaustive list of everything you might do and do the last thing on the list",
+"Make a sudden, destructive unpredictable action; incorporate",
+"Mechanize something idiosyncratic","Mute and continue",
+"Not building a wall but making a brick","Once the search has begun, something will be found",
+"Only a part, not the whole","Only one element of each kind",
+"Openly resist change","Overtly resist change",
+"Put in earplugs","Question the heroic approach",
+"Remember those quiet evenings","Remove ambiguities and convert to specifics",
+"Remove specifics and convert to ambiguities","Repetition is a form of change",
+"Retrace your steps","Reverse","Short circuit (example: a man eating peas with the idea that they will improve his virility shovels them straight into his lap)",
+"Shut the door and listen from outside","Simple subtraction",
+"Simply a matter of work","Slow preparation, fast execution",
+"Spectrum analysis","State the problem in words as clearly as possible",
+"Take a break","Take away the elements in order of apparent non-importance",
+"Tape your mouth","The inconsistency principle","The tape is now the music",
+"Think of the radio","Tidy up","Towards the insignificant",
+"Trust in the you of now","Turn it upside down",
+"Twist the spine","Use an old idea","Use an unacceptable colour",
+"Use fewer notes","Use filters","Use your own ideas",
+"Voice your suspicions","Water","What are you really thinking about just now?",
+"What context would look right?","What is the reality of the situation?",
+"What mistakes did you make last time?","What to increase? What to reduce?",
+"What to maintain? What to change?","What would your closest friend do?",
+"When is it for?","Where is the edge?","Which parts can be grouped?",
+"Work at a different speed","Would anybody want it?",
+"You are an engineer","You can only make one dot at a time","You don't have to be ashamed of using your own ideas",
+"Your mistake was a hidden intention","Try faking it!",
+"Use unqualified people","What most recently impressed you? How is it similar? What can you learn from it?",
+"Faced with a choice, do both (given by Dieter Rot)","Always first steps",
+"Ask people to work against their better judgement","What else is this like?",
+"Gardening, not architecture","The most important thing is the thing most easily forgotten",
+"Abandon normal instruments","Don't avoid what is easy","Remove the middle, extend the edges"
+];
+
+W.oblique = () => {
+  const existing = document.querySelector('.oblique-embed');
+  if (existing) { existing.remove(); return; }
+  const mobile = W.isMobile();
+  if (mobile) W.closeSidebar();
+  const card = W.OBLIQUE[Math.floor(Math.random() * W.OBLIQUE.length)];
+  const el = document.createElement('div');
+  el.className = 'oblique-embed';
+  if (mobile) {
+    el.style.cssText = 'position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;background:var(--bg);align-items:center;justify-content:center;overflow-y:auto;-webkit-overflow-scrolling:touch';
+    el.innerHTML = `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%;max-width:500px;text-align:center">
+        <div style="font-size:10px;color:color-mix(in srgb,var(--text) 40%,transparent);text-transform:uppercase;letter-spacing:.3em;margin-bottom:24px">oblique strategies</div>
+        <div style="font-size:clamp(18px,5vw,26px);color:var(--text);line-height:1.6;font-style:italic;text-shadow:0 0 20px color-mix(in srgb,var(--text) 30%,transparent);padding:0 12px">${W.esc(card)}</div>
+        <div style="display:flex;gap:12px;margin-top:32px;flex-wrap:wrap;justify-content:center">
+          <button onclick="W.obliqueRedraw()" style="background:none;border:1px solid color-mix(in srgb,var(--acc) 40%,transparent);color:var(--acc);font-family:inherit;font-size:12px;padding:12px 24px;cursor:pointer;text-transform:uppercase;letter-spacing:.15em;transition:all .15s;min-height:44px">draw another</button>
+          <button onclick="document.querySelector('.oblique-embed').remove()" style="background:none;border:1px solid color-mix(in srgb,var(--text) 30%,transparent);color:var(--text);font-family:inherit;font-size:12px;padding:12px 24px;cursor:pointer;text-transform:uppercase;letter-spacing:.15em;transition:all .15s;min-height:44px">&larr; back to editor</button>
+        </div>
+        <div style="margin-top:40px;font-size:9px;color:color-mix(in srgb,var(--text) 30%,transparent);line-height:1.8">
+          Text by Brian Eno and Peter Schmidt<br>
+          Originally published 1975<br>
+          <a href="https://stoney.sb.org/eno/oblique.html" target="_blank" rel="noopener" style="color:color-mix(in srgb,var(--acc) 60%,transparent)">stoney.sb.org/eno/oblique.html</a>
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+  } else {
+    el.style.cssText = 'position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;background:var(--bg);align-items:center;justify-content:center';
+    el.innerHTML = `
+      <div style="position:absolute;top:12px;left:12px;display:flex;gap:8px;align-items:center">
+        <button onclick="this.closest('.oblique-embed').remove()" style="background:none;border:1px solid color-mix(in srgb,var(--text) 30%,transparent);color:var(--text);font-family:inherit;font-size:10px;padding:4px 10px;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;transition:all .15s">&larr; back</button>
+      </div>
+      <div style="text-align:center;max-width:500px;padding:40px">
+        <div style="font-size:10px;color:color-mix(in srgb,var(--text) 40%,transparent);text-transform:uppercase;letter-spacing:.3em;margin-bottom:32px">oblique strategies</div>
+        <div style="font-size:24px;color:var(--text);line-height:1.6;font-style:italic;text-shadow:0 0 20px color-mix(in srgb,var(--text) 30%,transparent)">${W.esc(card)}</div>
+        <button onclick="W.obliqueRedraw()" style="margin-top:32px;background:none;border:1px solid color-mix(in srgb,var(--acc) 40%,transparent);color:var(--acc);font-family:inherit;font-size:11px;padding:8px 20px;cursor:pointer;text-transform:uppercase;letter-spacing:.15em;transition:all .15s">draw another</button>
+        <div style="margin-top:48px;font-size:9px;color:color-mix(in srgb,var(--text) 30%,transparent);line-height:1.6">
+          Text by Brian Eno and Peter Schmidt<br>
+          Originally published 1975<br>
+          <a href="https://stoney.sb.org/eno/oblique.html" target="_blank" rel="noopener" style="color:color-mix(in srgb,var(--acc) 60%,transparent)">stoney.sb.org/eno/oblique.html</a>
+        </div>
+      </div>`;
+    document.getElementById('editor-wrap').appendChild(el);
+  }
+};
+
+W.obliqueRedraw = () => {
+  const embed = document.querySelector('.oblique-embed');
+  if (!embed) return;
+  embed.remove();
+  W.oblique();
+};
+
+W.toggleSidebar = () => {
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('sb-backdrop');
+  sb.classList.toggle('closed');
+  if (W.isMobile()) bd.classList.toggle('open', !sb.classList.contains('closed'));
+};
+W.closeSidebar = () => {
+  document.getElementById('sidebar').classList.add('closed');
+  document.getElementById('sb-backdrop').classList.remove('open');
+};
+
+// ── Keyboard shortcuts ─────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey||e.metaKey) && e.key==='b') { e.preventDefault(); W.toggleSidebar(); }
+  if ((e.ctrlKey||e.metaKey) && e.key==='n') { e.preventDefault(); W.createDoc(); }
+  if ((e.ctrlKey||e.metaKey) && e.key==='\\') { e.preventDefault(); W.toggleSplit(); }
+  if (e.key==='Escape') { if (document.activeElement&&document.activeElement.tagName==='INPUT') return; if (document.getElementById('modal-root').innerHTML) W.closeModal(); else W.toggleSidebar(); }
+  if (e.key==='F11'||((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='f')) { e.preventDefault(); document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+});
+
+// ═══════════════════════════════════════════════════════════
+// SPLIT PANE
+// ═══════════════════════════════════════════════════════════
+W.splitOpen = false;
+W.rpDocId = null;   // doc id in right pane (null = version)
+W.rpRevId = null;   // revision id in right pane
+W.rpSaveTimer = null;
+
+W.toggleSplit = () => { W.splitOpen ? W.closeSplit() : W.openSplit(); };
+
+W.openSplit = () => {
+  if (W.isMobile()) return;
+  W.splitOpen = true;
+  document.getElementById('right-pane').style.display = '';
+
+  W.rpPopulateSelect();
+  // Default: open current doc's versions or first other doc
+  const otherDoc = W.docs.find(d => d.id !== W.currentId);
+  if (otherDoc) W.rpSelect('doc:' + otherDoc.id);
+  else W.rpSelect('');
+};
+
+W.closeSplit = () => {
+  W.splitOpen = false;
+  W.rpDocId = null;
+  W.rpRevId = null;
+  document.getElementById('right-pane').style.display = 'none';
+
+};
+
+W.rpPopulateSelect = () => {
+  const sel = document.getElementById('rp-select');
+  let html = '<option value="">-- select --</option>';
+  html += '<option value="new">+ new document</option>';
+  html += '<optgroup label="Documents">';
+  for (const d of W.docs) {
+    const tag = d.id === W.currentId ? ' (current)' : '';
+    html += `<option value="doc:${d.id}"${W.rpDocId===d.id?' selected':''}>${W.esc(d.title)}${tag}</option>`;
+  }
+  html += '</optgroup>';
+  // Versions of current doc
+  const revs = W.revisions.filter(r => r.documentId === W.currentId).sort((a,b) => b.createdAt - a.createdAt);
+  if (revs.length) {
+    html += '<optgroup label="Versions (current doc)">';
+    for (const r of revs) {
+      const d = new Date(r.createdAt);
+      const label = r.name || (d.toLocaleDateString() + ' ' + d.toLocaleTimeString());
+      html += `<option value="rev:${r.id}"${W.rpRevId===r.id?' selected':''}>${W.esc(label)} (${r.wordCount}w)</option>`;
+    }
+    html += '</optgroup>';
+  }
+  sel.innerHTML = html;
+};
+
+W.rpSelect = async val => {
+  if (!val) { W.rpDocId = null; W.rpRevId = null; W.rpRender('', true); return; }
+  if (val === 'new') {
+    const doc = {id:W.uid(),title:'Untitled',content:'',folderId:null,createdAt:W.now(),updatedAt:W.now(),wordCountGoal:null,charCountGoal:null};
+    await W.dbPut('documents', doc);
+    W.docs.unshift(doc);
+    W.renderDocs();
+    W.rpDocId = doc.id; W.rpRevId = null;
+    W.rpPopulateSelect();
+    W.rpRender('', false);
+    return;
+  }
+  const [type, id] = val.split(':');
+  if (type === 'doc') {
+    W.rpDocId = id; W.rpRevId = null;
+    const doc = W.docs.find(d => d.id === id);
+    if (doc) W.rpRender(doc.content, false);
+  } else if (type === 'rev') {
+    W.rpRevId = id; W.rpDocId = null;
+    const rev = W.revisions.find(r => r.id === id);
+    if (rev) W.rpRender(rev.content, true);
+  }
+};
+
+W.rpRender = (content, readonly) => {
+  const ed = document.getElementById('rp-editor');
+  const hl = document.getElementById('rp-highlight');
+  const s = W.settings;
+  const ff = s.fontFamily === 'serif' ? 'Georgia,"Times New Roman",serif' : s.fontFamily === 'sans' ? '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif' : '"Courier New",monospace';
+  ed.value = content;
+  ed.readOnly = readonly;
+  ed.style.fontFamily = ff;
+  ed.style.fontSize = s.fontSize + 'px';
+  ed.style.lineHeight = s.lineSpacing;
+  hl.style.backgroundColor = s.paperColor;
+  hl.style.color = s.textColor;
+  hl.style.fontFamily = ff;
+  hl.style.fontSize = s.fontSize + 'px';
+  hl.style.lineHeight = s.lineSpacing;
+  hl.style.textShadow = `0 0 1px ${s.textColor}40`;
+  W.rpRenderHL();
+};
+
+W.rpRenderHL = () => {
+  document.getElementById('rp-highlight').innerHTML = W.highlightComments(document.getElementById('rp-editor').value) + '\n';
+};
+
+// Right pane input/scroll sync
+document.getElementById('rp-editor').addEventListener('input', () => {
+  W.rpRenderHL();
+  // Auto-save if editing a doc
+  if (W.rpDocId) {
+    clearTimeout(W.rpSaveTimer);
+    W.rpSaveTimer = setTimeout(async () => {
+      const doc = W.docs.find(d => d.id === W.rpDocId);
+      if (doc) {
+        doc.content = document.getElementById('rp-editor').value; doc.updatedAt = W.now(); await W.dbPut('documents', doc); W.renderDocs(); W.scheduleCloudPush();
+        // If left pane shows same doc, sync it (but preserve cursor)
+        if (W.currentId === W.rpDocId) {
+          const ed = document.getElementById('editor');
+          if (ed.value !== doc.content && document.activeElement !== ed) { ed.value = doc.content; W.renderHighlight(); W.updateCounts(); }
+        }
+      }
+    }, 1000);
+  }
+});
+document.getElementById('rp-editor').addEventListener('scroll', () => {
+  document.getElementById('rp-highlight').scrollTop = document.getElementById('rp-editor').scrollTop;
+});
+
+// ═══════════════════════════════════════════════════════════
+// SOUNDS (Web Audio API synthesis)
+// ═══════════════════════════════════════════════════════════
+let audioCtx = null;
+let audioUnlocked = false;
+
+function getAC() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function unlockAudio() {
+  if (audioUnlocked && audioCtx && audioCtx.state === 'running') return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const c = audioCtx;
+    if (c.state === 'suspended') {
+      c.resume().then(() => {
+        const b = c.createBuffer(1, 1, c.sampleRate);
+        const s = c.createBufferSource();
+        s.buffer = b;
+        s.connect(c.destination);
+        s.start(0);
+        audioUnlocked = true;
+      });
+    } else {
+      audioUnlocked = true;
+    }
+  } catch {}
+}
+
+// Unlock on any real user gesture
+['touchstart','touchend','mousedown','click','keydown'].forEach(evt => {
+  document.addEventListener(evt, unlockAudio, {passive:true});
+});
+
+W.playSound = (fn, c) => { try { fn(c); } catch {} };
+W.playKeystroke = type => {
+  try {
+    const c = getAC();
+    if (c.state === 'suspended') { c.resume(); return; } // will play next time
+    ({mechanical:skMech,electric:skElec,laser:skLaser,sandstorm:skSand})[type]?.(c);
+  } catch {}
+};
+W.playReturn = type => {
+  try {
+    const c = getAC();
+    if (c.state === 'suspended') { c.resume(); return; }
+    ({mechanical:srMech,electric:srElec,laser:srLaser,sandstorm:srSand})[type]?.(c);
+  } catch {}
+};
+
+function skMech(c){const n=c.currentTime,l=c.sampleRate*.04,b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<l;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(l*.1));const s=c.createBufferSource();s.buffer=b;const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=2000+Math.random()*1000;f.Q.value=2;const g=c.createGain();g.gain.setValueAtTime(.15,n);g.gain.exponentialRampToValueAtTime(.001,n+.04);s.connect(f);f.connect(g);g.connect(c.destination);s.start(n);s.stop(n+.05)}
+function skElec(c){const n=c.currentTime,o=c.createOscillator();o.type='square';o.frequency.setValueAtTime(800+Math.random()*400,n);o.frequency.exponentialRampToValueAtTime(200,n+.02);const g=c.createGain();g.gain.setValueAtTime(.06,n);g.gain.exponentialRampToValueAtTime(.001,n+.03);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+.04)}
+function skLaser(c){const n=c.currentTime,dur=.08+Math.random()*.04,sf=900+Math.random()*600;const o=c.createOscillator();o.type='square';o.frequency.setValueAtTime(sf,n);o.frequency.exponentialRampToValueAtTime(80,n+dur);const o2=c.createOscillator();o2.type='sawtooth';o2.frequency.setValueAtTime(sf*1.5,n);o2.frequency.exponentialRampToValueAtTime(40,n+dur*.8);const g=c.createGain();g.gain.setValueAtTime(.09,n);g.gain.exponentialRampToValueAtTime(.001,n+dur);const g2=c.createGain();g2.gain.setValueAtTime(.03,n);g2.gain.exponentialRampToValueAtTime(.001,n+dur*.7);const nl=Math.floor(c.sampleRate*.015),nb=c.createBuffer(1,nl,c.sampleRate),nd=nb.getChannelData(0);for(let i=0;i<nl;i++)nd[i]=(Math.random()*2-1)*Math.exp(-i/(nl*.3));const ns=c.createBufferSource();ns.buffer=nb;const ng=c.createGain();ng.gain.setValueAtTime(.08,n);ng.gain.exponentialRampToValueAtTime(.001,n+.015);const nf=c.createBiquadFilter();nf.type='highpass';nf.frequency.value=3000;o.connect(g);o2.connect(g2);ns.connect(nf);nf.connect(ng);g.connect(c.destination);g2.connect(c.destination);ng.connect(c.destination);o.start(n);o2.start(n);ns.start(n);o.stop(n+dur+.01);o2.stop(n+dur+.01);ns.stop(n+.02)}
+
+const SSR=[493.88,493.88,493.88,493.88,493.88,493.88,493.88,493.88,659.25,659.25,659.25,659.25,587.33,587.33,587.33,587.33,493.88,493.88,493.88,493.88,493.88,493.88,493.88,493.88,659.25,659.25,659.25,659.25,440,440,440,440,440,440,440,440,493.88,493.88,493.88,493.88];
+let ssIdx=0,ssLast=0;
+function skSand(c){const n=c.currentTime;if(n-ssLast>2)ssIdx=0;ssLast=n;const f=SSR[ssIdx%SSR.length];ssIdx++;const dur=.08;const o=c.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,n);const s=c.createOscillator();s.type='square';s.frequency.setValueAtTime(f/2,n);const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.setValueAtTime(3000,n);fl.frequency.exponentialRampToValueAtTime(600,n+dur);fl.Q.value=8;const g=c.createGain();g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(.12,n+.005);g.gain.setValueAtTime(.12,n+dur*.6);g.gain.exponentialRampToValueAtTime(.001,n+dur);o.connect(fl);s.connect(fl);fl.connect(g);g.connect(c.destination);o.start(n);s.start(n);o.stop(n+dur+.01);s.stop(n+dur+.01)}
+function srMech(c){const n=c.currentTime,l=c.sampleRate*.12,b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<l;i++){const t=i/c.sampleRate;d[i]=(Math.random()*2-1)*Math.exp(-t*20)*.3+Math.sin(2*Math.PI*150*t)*Math.exp(-t*15)*.2}const s=c.createBufferSource();s.buffer=b;const g=c.createGain();g.gain.setValueAtTime(.2,n);g.gain.exponentialRampToValueAtTime(.001,n+.12);s.connect(g);g.connect(c.destination);s.start(n);s.stop(n+.15)}
+function srElec(c){const n=c.currentTime,l=c.sampleRate*.12,b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<l;i++){const t=i/c.sampleRate;d[i]=(Math.random()*2-1)*Math.exp(-t*20)*.3+Math.sin(2*Math.PI*150*t)*Math.exp(-t*15)*.2}const s=c.createBufferSource();s.buffer=b;const g=c.createGain();g.gain.setValueAtTime(.1,n);g.gain.exponentialRampToValueAtTime(.001,n+.12);s.connect(g);g.connect(c.destination);s.start(n);s.stop(n+.15)}
+function srLaser(c){const n=c.currentTime,dur=.2;const o=c.createOscillator();o.type='square';o.frequency.setValueAtTime(1800,n);o.frequency.exponentialRampToValueAtTime(50,n+dur);const o2=c.createOscillator();o2.type='sawtooth';o2.frequency.setValueAtTime(2400,n);o2.frequency.exponentialRampToValueAtTime(30,n+dur*.7);const g=c.createGain();g.gain.setValueAtTime(.12,n);g.gain.exponentialRampToValueAtTime(.001,n+dur);const g2=c.createGain();g2.gain.setValueAtTime(.05,n);g2.gain.exponentialRampToValueAtTime(.001,n+dur*.6);o.connect(g);o2.connect(g2);g.connect(c.destination);g2.connect(c.destination);o.start(n);o2.start(n);o.stop(n+dur+.01);o2.stop(n+dur+.01)}
+function srSand(c){const n=c.currentTime;stab(c,493.88,n,.06);stab(c,659.25,n+.07,.1);ssIdx=0}
+function stab(c,f,t,dur){const o=c.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,t);const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.setValueAtTime(3500,t);fl.frequency.exponentialRampToValueAtTime(500,t+dur);fl.Q.value=10;const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.14,t+.005);g.gain.setValueAtTime(.14,t+dur*.5);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(fl);fl.connect(g);g.connect(c.destination);o.start(t);o.stop(t+dur+.01)}
+
+// ═══════════════════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════════════════
+W.openModal = type => { if (W.isMobile()) W.closeSidebar(); const root = document.getElementById('modal-root'); root.innerHTML = W.modalHTML[type](); };
+W.closeModal = () => { document.getElementById('modal-root').innerHTML = ''; };
+
+W.modalHTML = {};
+
+// ── Settings modal ─────────────────────────────────────────
+W.modalHTML.settings = () => {
+  const s = W.settings;
+  const builtIn = [
+    {id:'cyberpunk',label:'Neon',p:'#0a0a12',t:'#05d9e8',a:'#ff2a6d',a2:'#f9f002'},
+    {id:'cyberpink',label:'Hot',p:'#120a10',t:'#ff2a6d',a:'#05d9e8',a2:'#f9f002'},
+    {id:'matrix',label:'Matrix',p:'#0a0f0a',t:'#00ff41',a:'#ff2a6d',a2:'#f9f002'},
+    {id:'amber',label:'Amber',p:'#0f0d08',t:'#ffb000',a:'#ff2a6d',a2:'#f9f002'},
+    {id:'ice',label:'Ice',p:'#f0f4f8',t:'#1a1a3e',a:'#ff2a6d',a2:'#f9f002'},
+  ];
+  const customs = W.getCustomThemes();
+  const allThemes = [...builtIn, ...customs];
+  const presetBtns = allThemes.map(t => {
+    const active = s.theme === t.id;
+    const swatch = `<span style="display:inline-block;width:8px;height:8px;background:${t.t};border-radius:50%;margin-right:4px;vertical-align:middle;box-shadow:0 0 4px ${t.t}"></span>`;
+    const isCustom = t.custom ? `<span style="font-size:7px;opacity:.4"> *</span>` : '';
+    return `<button class="btn ${active?'btn-cyan':'btn-pink'}" style="flex:1;font-size:9px;padding:5px 4px;min-width:0" onclick="W.setFullTheme('${t.id}')">${swatch}${t.label}${isCustom}</button>`;
+  }).join('');
+  const isCustomActive = s.theme === 'custom' || customs.some(t => t.id === s.theme);
+  return `<div class="modal-bg" onclick="if(event.target===this)W.closeModal()"><div class="modal modal-sm" style="max-width:460px">
+    <div class="modal-head"><h2 style="color:var(--text)">// system_config</h2><button class="close" onclick="W.closeModal()">[x]</button></div>
+    <div class="modal-body">
+      <div class="field"><label>theme_preset</label><div style="display:flex;gap:4px;flex-wrap:wrap">${presetBtns}</div></div>
+      <div class="field" style="display:flex;gap:4px">${customs.some(t=>t.id===s.theme)?`<button class="btn btn-cyan" style="flex:1;font-size:9px" onclick="W.openThemeBuilder('${s.theme}')">&gt; edit_theme</button>`:''}
+        <button class="btn btn-yellow" style="flex:1;font-size:9px" onclick="W.openThemeBuilder()">&gt; create_custom_theme</button></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" class="field">
+        <div><label>bg_color</label><input type="color" value="${s.paperColor}" onchange="W.setSetting('paperColor',this.value)"></div>
+        <div><label>text_color</label><input type="color" value="${s.textColor}" onchange="W.setSetting('textColor',this.value)"></div>
+      </div>
+      <div class="field"><label>font_family</label><select onchange="W.setSetting('fontFamily',this.value)"><option value="mono" ${s.fontFamily==='mono'?'selected':''}>monospace</option><option value="serif" ${s.fontFamily==='serif'?'selected':''}>serif</option><option value="sans" ${s.fontFamily==='sans'?'selected':''}>sans-serif</option></select></div>
+      <div class="field"><label>font_size: <span style="color:var(--acc2)">${s.fontSize}px</span></label><input type="range" min="12" max="32" value="${s.fontSize}" oninput="W.setSetting('fontSize',this.value);this.previousElementSibling.querySelector('span').textContent=this.value+'px'"></div>
+      <div class="field"><label>line_height: <span style="color:var(--acc2)">${s.lineSpacing}</span></label><input type="range" min="1" max="3" step="0.1" value="${s.lineSpacing}" oninput="W.setSetting('lineSpacing',this.value);this.previousElementSibling.querySelector('span').textContent=this.value"></div>
+      <div class="field"><label style="cursor:pointer"><input type="checkbox" ${s.soundEnabled==='true'?'checked':''} onchange="W.setSetting('soundEnabled',String(this.checked));W.openModal('settings')"> audio_feedback</label></div>
+      ${s.soundEnabled==='true'?`<div class="field"><select onchange="W.setSetting('soundType',this.value)"><option value="mechanical" ${s.soundType==='mechanical'?'selected':''}>mechanical_keys</option><option value="electric" ${s.soundType==='electric'?'selected':''}>electric_keys</option><option value="laser" ${s.soundType==='laser'?'selected':''}>space_invader_laser</option><option value="sandstorm" ${s.soundType==='sandstorm'?'selected':''}>darude_sandstorm</option></select></div>`:''}
+      <div class="field"><label style="cursor:pointer;color:color-mix(in srgb,var(--acc) 80%,transparent)"><input type="checkbox" ${s.hemingwayMode==='true'?'checked':''} onchange="W.setSetting('hemingwayMode',String(this.checked))"> hemingway_protocol</label><div style="font-size:10px;color:color-mix(in srgb,var(--acc) 50%,transparent);margin-top:4px;margin-left:20px">// disables delete. write forward only.</div></div>
+      <div class="field"><label>comment_markers</label><div style="display:flex;gap:8px"><div style="flex:1"><div style="font-size:9px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-bottom:2px">open</div><input type="text" value="${W.esc(s.commentOpen||'%%')}" placeholder="%%" onchange="W.setSetting('commentOpen',this.value);W.renderHighlight()"></div><div style="flex:1"><div style="font-size:9px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-bottom:2px">close</div><input type="text" value="${W.esc(s.commentClose||'%%')}" placeholder="%%" onchange="W.setSetting('commentClose',this.value);W.renderHighlight()"></div></div><div style="font-size:10px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-top:4px">// text between these markers is greyed out</div></div>
+
+    </div></div></div>`;
+};
+W.setTheme = (id, p, t) => { W.setSetting('theme',id); W.setSetting('paperColor',p); W.setSetting('textColor',t); W.openModal('settings'); };
+
+// Full theme application (looks up built-in or custom)
+W.setFullTheme = id => {
+  const builtIn = {
+    cyberpunk:{p:'#0a0a12',t:'#05d9e8',a:'#ff2a6d',a2:'#f9f002'},
+    cyberpink:{p:'#120a10',t:'#ff2a6d',a:'#05d9e8',a2:'#f9f002'},
+    matrix:{p:'#0a0f0a',t:'#00ff41',a:'#ff2a6d',a2:'#f9f002'},
+    amber:{p:'#0f0d08',t:'#ffb000',a:'#ff2a6d',a2:'#f9f002'},
+    ice:{p:'#f0f4f8',t:'#1a1a3e',a:'#ff2a6d',a2:'#f9f002'},
+  };
+  let theme = builtIn[id];
+  if (!theme) { const c = W.getCustomThemes().find(t => t.id === id); if (c) theme = c; }
+  if (!theme) return;
+  W.setSetting('theme', id);
+  W.setSetting('paperColor', theme.p);
+  W.setSetting('textColor', theme.t);
+  W.setSetting('accentColor', theme.a || theme.t);
+  W.setSetting('accent2Color', theme.a2 || theme.t);
+  W.setSetting('commentColor', theme.cm || '#555555');
+  W.openModal('settings');
+};
+
+// Custom theme storage
+W.getCustomThemes = () => {
+  try { return JSON.parse(W.settings.customThemes || '[]'); } catch { return []; }
+};
+W.saveCustomTheme = async theme => {
+  const themes = W.getCustomThemes();
+  const idx = themes.findIndex(t => t.id === theme.id);
+  if (idx >= 0) themes[idx] = theme; else themes.push(theme);
+  await W.setSetting('customThemes', JSON.stringify(themes));
+};
+W.deleteCustomTheme = async id => {
+  const themes = W.getCustomThemes().filter(t => t.id !== id);
+  await W.setSetting('customThemes', JSON.stringify(themes));
+  if (W.settings.theme === id) W.setFullTheme('cyberpunk');
+  else W.openModal('settings');
+};
+
+// Theme builder modal
+W.openThemeBuilder = (editId) => {
+  const existing = editId ? W.getCustomThemes().find(t => t.id === editId) : null;
+  const s = W.settings;
+  const bg = existing?.p || s.paperColor || '#0a0a12';
+  const txt = existing?.t || s.textColor || '#05d9e8';
+  const acc = existing?.a || s.accentColor || '#ff2a6d';
+  const acc2 = existing?.a2 || s.accent2Color || '#f9f002';
+  const cm = existing?.cm || s.commentColor || '#555555';
+  const name = existing?.label || '';
+
+  document.getElementById('modal-root').innerHTML = `<div class="modal-bg" onclick="if(event.target===this)W.openModal('settings')"><div class="modal modal-sm">
+    <div class="modal-head"><h2 style="color:var(--acc2)">// theme_generator</h2><button class="close" onclick="W.openModal('settings')">[x]</button></div>
+    <div class="modal-body">
+      <div class="field"><label>theme_name</label><input type="text" id="tb-name" value="${W.esc(name)}" placeholder="my_theme"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field"><label>background</label><input type="color" id="tb-bg" value="${bg}" oninput="W.themePreview()"></div>
+        <div class="field"><label>text</label><input type="color" id="tb-text" value="${txt}" oninput="W.themePreview()"></div>
+        <div class="field"><label>accent_1</label><input type="color" id="tb-acc" value="${acc}" oninput="W.themePreview()"></div>
+        <div class="field"><label>accent_2</label><input type="color" id="tb-acc2" value="${acc2}" oninput="W.themePreview()"></div>
+        <div class="field"><label>comment</label><input type="color" id="tb-cm" value="${cm}" oninput="W.themePreview()"></div>
+      </div>
+      <div class="field"><label>preview</label>
+        <div id="tb-preview" style="padding:16px;border:1px solid rgba(5,217,232,.25);font-size:13px;line-height:1.8;min-height:80px">
+          <div id="tb-prev-title" style="font-size:10px;text-transform:uppercase;letter-spacing:.15em;margin-bottom:8px"></div>
+          <span id="tb-prev-text">The night was electric. Neon signs flickered above the rain-slicked streets as she typed the final line of her manuscript...</span>
+          <span id="tb-prev-cm" style="margin-left:8px">%% this is a comment %%</span>
+          <span id="tb-prev-acc" style="margin-left:8px">// accent</span>
+          <span id="tb-prev-acc2" style="margin-left:8px">// highlight</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-cyan" style="flex:1" onclick="W.saveThemeFromBuilder('${editId||''}')">&gt; save_theme</button>
+        ${editId?`<button class="btn btn-pink" onclick="W.deleteCustomTheme('${editId}')">&gt; delete</button>`:''}
+        <button class="btn btn-pink" onclick="W.openModal('settings')">cancel</button>
+      </div>
+      <div style="margin-top:12px"><label>randomize</label><div style="display:flex;gap:4px;flex-wrap:wrap" id="tb-randoms"></div></div>
+    </div></div></div>`;
+  W.themePreview();
+  W.populateRandomThemes();
+};
+
+W.themePreview = () => {
+  const bg = document.getElementById('tb-bg').value;
+  const txt = document.getElementById('tb-text').value;
+  const acc = document.getElementById('tb-acc').value;
+  const acc2 = document.getElementById('tb-acc2').value;
+  const cm = document.getElementById('tb-cm').value;
+  const prev = document.getElementById('tb-preview');
+  prev.style.backgroundColor = bg;
+  prev.style.color = txt;
+  prev.style.borderColor = acc + '40';
+  document.getElementById('tb-prev-title').style.color = acc;
+  document.getElementById('tb-prev-title').textContent = document.getElementById('tb-name').value || 'untitled_theme';
+  document.getElementById('tb-prev-text').style.color = txt;
+  document.getElementById('tb-prev-cm').style.color = cm;
+  document.getElementById('tb-prev-acc').style.color = acc;
+  document.getElementById('tb-prev-acc2').style.color = acc2;
+};
+
+W.saveThemeFromBuilder = async editId => {
+  const name = document.getElementById('tb-name').value.trim();
+  if (!name) { alert('Enter a theme name'); return; }
+  const theme = {
+    id: editId || 'custom_' + W.uid().slice(0,8),
+    label: name,
+    p: document.getElementById('tb-bg').value,
+    t: document.getElementById('tb-text').value,
+    a: document.getElementById('tb-acc').value,
+    a2: document.getElementById('tb-acc2').value,
+    cm: document.getElementById('tb-cm').value,
+    custom: true,
+  };
+  await W.saveCustomTheme(theme);
+  W.setFullTheme(theme.id);
+};
+
+W.populateRandomThemes = () => {
+  const palettes = [
+    {label:'Vapor',p:'#1a0a2e',t:'#ff71ce',a:'#01cdfe',a2:'#05ffa1',cm:'#6a3a6a'},
+    {label:'Sunset',p:'#1a0a0a',t:'#ff6b35',a:'#ff1493',a2:'#ffd700',cm:'#664430'},
+    {label:'Ocean',p:'#0a1628',t:'#00b4d8',a:'#0077b6',a2:'#90e0ef',cm:'#2a4a5a'},
+    {label:'Hacker',p:'#000000',t:'#00ff00',a:'#008000',a2:'#adff2f',cm:'#1a4a1a'},
+    {label:'Rust',p:'#1a1210',t:'#e07a5f',a:'#f2cc8f',a2:'#81b29a',cm:'#5a4030'},
+    {label:'Arctic',p:'#0d1b2a',t:'#e0fbfc',a:'#3d5a80',a2:'#98c1d9',cm:'#4a5a6a'},
+    {label:'Blood',p:'#0a0000',t:'#ff0040',a:'#ff4444',a2:'#ff8888',cm:'#550020'},
+    {label:'Gold',p:'#0a0a00',t:'#ffd700',a:'#daa520',a2:'#fffacd',cm:'#4a4a00'},
+    {label:'Void',p:'#000000',t:'#ffffff',a:'#888888',a2:'#444444',cm:'#333333'},
+    {label:'Toxic',p:'#0a100a',t:'#39ff14',a:'#ff073a',a2:'#dfff00',cm:'#1a3a1a'},
+    {label:'Sakura',p:'#1a0f14',t:'#ffb7c5',a:'#ff69b4',a2:'#ffd1dc',cm:'#6a4050'},
+    {label:'Storm',p:'#0f0a1a',t:'#b8c0ff',a:'#7b2ff7',a2:'#c8b6ff',cm:'#4a4060'},
+  ];
+  const el = document.getElementById('tb-randoms');
+  el.innerHTML = palettes.map(p =>
+    `<button class="btn btn-cyan" style="font-size:8px;padding:3px 6px" onclick="document.getElementById('tb-bg').value='${p.p}';document.getElementById('tb-text').value='${p.t}';document.getElementById('tb-acc').value='${p.a}';document.getElementById('tb-acc2').value='${p.a2}';document.getElementById('tb-cm').value='${p.cm}';document.getElementById('tb-name').value='${p.label}';W.themePreview()">${p.label}</button>`
+  ).join('');
+};
+
+// ── Export modal ───────────────────────────────────────────
+W.modalHTML.export = () => {
+  const doc = W.docs.find(d => d.id === W.currentId);
+  if (!doc) return `<div class="modal-bg" onclick="if(event.target===this)W.closeModal()"><div class="modal modal-sm"><div class="modal-body" style="text-align:center;color:rgba(5,217,232,.6)">// no document selected<br><button class="btn btn-cyan" style="margin-top:12px" onclick="W.closeModal()">close</button></div></div></div>`;
+  const fmts = [{id:'txt',name:'plain_text',desc:'.txt raw output'},{id:'md',name:'markdown',desc:'.md formatted'},{id:'docx',name:'word_doc',desc:'.docx for Microsoft Word'},{id:'html',name:'html',desc:'styled web page'}];
+  const btns = fmts.map(f => `<button class="export-btn" onclick="W.doExport('${f.id}')">&gt; ${f.name}<span class="tag">.${f.id}</span></button>`).join('');
+  return `<div class="modal-bg" onclick="if(event.target===this)W.closeModal()"><div class="modal modal-sm">
+    <div class="modal-head"><h2 style="color:var(--acc2)">// export_module</h2><button class="close" onclick="W.closeModal()">[x]</button></div>
+    <div class="modal-body"><div style="font-size:10px;color:color-mix(in srgb,var(--text) 60%,transparent);margin-bottom:12px">target: <span style="color:var(--text)">${W.esc(doc.title)}</span></div>${btns}</div></div></div>`;
+};
+W.doExport = fmt => {
+  const doc = W.docs.find(d => d.id === W.currentId);
+  if (!doc) return;
+  const name = doc.title.replace(/[^a-zA-Z0-9\-_ ]/g,'').trim()||'document';
+  let blob, mime;
+  if (fmt==='txt') { blob = new Blob([doc.content],{type:'text/plain'}); }
+  else if (fmt==='md') { blob = new Blob([doc.content],{type:'text/markdown'}); }
+  else if (fmt==='docx') { blob = W.buildDocx(doc.content, doc.title); }
+  else if (fmt==='html') {
+    const body = doc.content.split('\n').map(p=>p.trim()?`<p>${W.esc(p)}</p>`:'').join('\n');
+    blob = new Blob([`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${W.esc(doc.title)}</title><style>body{max-width:700px;margin:40px auto;padding:0 20px;font:18px/1.8 Georgia,serif;color:#333}h1{font-size:2em}</style></head><body><h1>${W.esc(doc.title)}</h1>${body}</body></html>`],{type:'text/html'});
+  }
+  if (!blob) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const now = new Date();
+  const ts = String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0') + '-' + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + String(now.getFullYear()).slice(2);
+  a.download = `${name}-${ts}.${fmt}`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+// ── Docx builder (minimal valid .docx) ─────────────────────
+W.buildDocx = (content, title) => {
+  const enc = new TextEncoder();
+  const escXml = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // Build paragraphs XML
+  const paras = content.split('\n').map(line =>
+    `<w:p><w:r><w:t xml:space="preserve">${escXml(line)}</w:t></w:r></w:p>`
+  ).join('');
+
+  const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>${paras}</w:body></w:document>`;
+
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  const wordRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+</Relationships>`;
+
+  const files = [
+    {name:'[Content_Types].xml', data:enc.encode(contentTypes)},
+    {name:'_rels/.rels', data:enc.encode(rels)},
+    {name:'word/_rels/document.xml.rels', data:enc.encode(wordRels)},
+    {name:'word/document.xml', data:enc.encode(docXml)},
+  ];
+  return new Blob([W.buildZip(files)], {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+};
+
+// Minimal ZIP builder (store only, no compression)
+W.buildZip = files => {
+  const enc = new TextEncoder();
+  const entries = [];
+  const parts = [];
+  let offset = 0;
+  for (const file of files) {
+    const nameBytes = enc.encode(file.name);
+    const header = new Uint8Array(30 + nameBytes.length);
+    const hv = new DataView(header.buffer);
+    hv.setUint32(0, 0x04034b50, true);
+    hv.setUint16(4, 20, true);
+    hv.setUint16(8, 0, true); // store
+    hv.setUint32(14, W.crc32(file.data), true);
+    hv.setUint32(18, file.data.length, true);
+    hv.setUint32(22, file.data.length, true);
+    hv.setUint16(26, nameBytes.length, true);
+    header.set(nameBytes, 30);
+    entries.push({name:nameBytes, data:file.data, offset});
+    parts.push(header, file.data);
+    offset += header.length + file.data.length;
+  }
+  const cdStart = offset;
+  for (const e of entries) {
+    const cd = new Uint8Array(46 + e.name.length);
+    const cv = new DataView(cd.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint32(16, W.crc32(e.data), true);
+    cv.setUint32(20, e.data.length, true);
+    cv.setUint32(24, e.data.length, true);
+    cv.setUint16(28, e.name.length, true);
+    cv.setUint32(42, e.offset, true);
+    cd.set(e.name, 46);
+    parts.push(cd);
+    offset += cd.length;
+  }
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(8, entries.length, true);
+  ev.setUint16(10, entries.length, true);
+  ev.setUint32(12, offset - cdStart, true);
+  ev.setUint32(16, cdStart, true);
+  parts.push(eocd);
+  const total = parts.reduce((s, p) => s + p.length, 0);
+  const result = new Uint8Array(total);
+  let pos = 0;
+  for (const p of parts) { result.set(p, pos); pos += p.length; }
+  return result;
+};
+
+W.crc32 = data => {
+  let crc = 0xffffffff;
+  for (let i = 0; i < data.length; i++) {
+    crc ^= data[i];
+    for (let j = 0; j < 8; j++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+};
+
+// ── Import modal ───────────────────────────────────────────
+W.modalHTML.import = () => {
+  const hasGdrive = W.clouds.some(c => c.provider === 'google-drive');
+  const gdriveSection = hasGdrive ? `<hr><div style="font-size:10px;color:color-mix(in srgb,var(--text) 60%,transparent);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.15em">// google_drive</div>
+    <div id="import-status" style="font-size:11px;color:color-mix(in srgb,var(--text) 50%,transparent);margin-bottom:8px">// loading files...</div>
+    <div id="import-list" style="max-height:40vh;overflow-y:auto"></div>` : '';
+  return `<div class="modal-bg" onclick="if(event.target===this)W.closeModal()"><div class="modal modal-md">
+    <div class="modal-head"><h2 style="color:var(--acc2)">// import</h2><button class="close" onclick="W.closeModal()">[x]</button></div>
+    <div class="modal-body">
+      <div style="font-size:10px;color:color-mix(in srgb,var(--text) 60%,transparent);margin-bottom:8px;text-transform:uppercase;letter-spacing:.15em">// local_file</div>
+      <button class="btn btn-cyan" style="width:100%;font-size:11px" onclick="W.importLocalFile()">&gt; open .txt, .md, or .docx file</button>
+      ${gdriveSection}
+    </div></div></div>`;
+};
+
+W.importLocalFile = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.txt,.md,.markdown,.docx';
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      let content, title;
+      title = file.name.replace(/\.(txt|md|markdown|docx)$/i, '');
+      if (file.name.endsWith('.docx')) {
+        content = await W.parseDocx(file);
+      } else {
+        content = await file.text();
+      }
+      const doc = {id:W.uid(),title,content,folderId:null,createdAt:W.now(),updatedAt:W.now(),wordCountGoal:null,charCountGoal:null};
+      await W.dbPut('documents', doc);
+      W.docs.unshift(doc);
+      W.renderDocs();
+      W.selectDoc(doc.id);
+      W.closeModal();
+      W.scheduleCloudPush();
+    } catch(err) {
+      alert('Import failed: ' + (err.message || 'unknown error'));
+    }
+  };
+  input.click();
+};
+
+// ── Docx parser (extract plain text from .docx zip) ────────
+W.parseDocx = async file => {
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  // Find document.xml inside the zip
+  const files = W.unzip(bytes);
+  const docXml = files['word/document.xml'];
+  if (!docXml) throw new Error('Not a valid .docx file');
+  const xml = new TextDecoder().decode(docXml);
+  // Extract text from <w:t> tags, <w:p> = paragraph break
+  let text = '';
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'application/xml');
+  const paragraphs = doc.getElementsByTagName('w:p');
+  for (let i = 0; i < paragraphs.length; i++) {
+    const runs = paragraphs[i].getElementsByTagName('w:t');
+    let line = '';
+    for (let j = 0; j < runs.length; j++) line += runs[j].textContent || '';
+    text += line + '\n';
+  }
+  return text.replace(/\n+$/, '');
+};
+
+// Minimal zip reader (store + deflate via DecompressionStream)
+W.unzip = bytes => {
+  const files = {};
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let pos = 0;
+  while (pos < bytes.length - 4) {
+    const sig = view.getUint32(pos, true);
+    if (sig !== 0x04034b50) break; // local file header
+    const method = view.getUint16(pos + 8, true);
+    const compSize = view.getUint32(pos + 18, true);
+    const uncompSize = view.getUint32(pos + 22, true);
+    const nameLen = view.getUint16(pos + 26, true);
+    const extraLen = view.getUint16(pos + 28, true);
+    const name = new TextDecoder().decode(bytes.slice(pos + 30, pos + 30 + nameLen));
+    const dataStart = pos + 30 + nameLen + extraLen;
+    const raw = bytes.slice(dataStart, dataStart + compSize);
+    if (method === 0) {
+      files[name] = raw; // stored
+    } else if (method === 8) {
+      files[name] = { deflated: raw, size: uncompSize }; // mark for decompression
+    }
+    pos = dataStart + compSize;
+  }
+  return files;
+};
+
+// Override parseDocx to handle deflated entries
+const _origParseDocx = W.parseDocx;
+W.parseDocx = async file => {
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  const raw = W.unzip(bytes);
+  // Decompress any deflated entries
+  const files = {};
+  for (const [name, data] of Object.entries(raw)) {
+    if (data.deflated) {
+      try {
+        // Use DecompressionStream (available in modern browsers)
+        const ds = new DecompressionStream('raw-deflate');
+        const writer = ds.writable.getWriter();
+        writer.write(data.deflated);
+        writer.close();
+        const reader = ds.readable.getReader();
+        const chunks = [];
+        while (true) { const {done, value} = await reader.read(); if (done) break; chunks.push(value); }
+        const total = chunks.reduce((s, c) => s + c.length, 0);
+        const result = new Uint8Array(total);
+        let offset = 0;
+        for (const c of chunks) { result.set(c, offset); offset += c.length; }
+        files[name] = result;
+      } catch { files[name] = data.deflated; } // fallback: try raw
+    } else {
+      files[name] = data;
+    }
+  }
+  const docXml = files['word/document.xml'];
+  if (!docXml) throw new Error('Not a valid .docx file');
+  const xml = new TextDecoder().decode(docXml);
+  let text = '';
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'application/xml');
+  const paragraphs = doc.getElementsByTagName('w:p');
+  for (let i = 0; i < paragraphs.length; i++) {
+    const runs = paragraphs[i].getElementsByTagName('w:t');
+    let line = '';
+    for (let j = 0; j < runs.length; j++) line += runs[j].textContent || '';
+    text += line + '\n';
+  }
+  return text.replace(/\n+$/, '');
+};
+
+W._importAfterOpen = async () => {
+  // Called after modal renders
+  const conn = W.clouds.find(c => c.provider === 'google-drive');
+  if (!conn) return;
+  const statusEl = document.getElementById('import-status');
+  const listEl = document.getElementById('import-list');
+  if (!statusEl || !listEl) return;
+  try {
+    const config = await W.ensureFreshToken(conn);
+    const token = config.accessToken;
+    // List Google Docs (not in trash), sorted by recent
+    const q = encodeURIComponent("mimeType='application/vnd.google-apps.document' and trashed=false");
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime,parents)&orderBy=modifiedTime desc&pageSize=50`,{headers:{Authorization:'Bearer '+token}});
+    if (!r.ok) throw new Error(await r.text());
+    const files = (await r.json()).files || [];
+    if (!files.length) { statusEl.textContent = '// no Google Docs found in your Drive'; return; }
+    statusEl.textContent = `// ${files.length} docs found. click to import.`;
+    listEl.innerHTML = files.map(f => {
+      const date = new Date(f.modifiedTime);
+      const ds = date.toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'});
+      const already = W.docs.some(d => d.title === f.name);
+      const tag = already ? '<span style="color:var(--acc);margin-left:6px;font-size:9px">exists</span>' : '';
+      return `<div class="doc-item" style="cursor:pointer" onclick="W.importGDoc('${f.id}','${W.esc(f.name).replace(/'/g,"\\'")}')"><div class="title">${W.esc(f.name)}${tag}</div><div class="meta">${ds}</div></div>`;
+    }).join('');
+  } catch(err) {
+    statusEl.textContent = '// ERROR: ' + (err.message || 'failed to list files');
+  }
+};
+
+W.importGDoc = async (fileId, name) => {
+  const statusEl = document.getElementById('import-status');
+  if (statusEl) statusEl.textContent = `// importing "${name}"...`;
+  try {
+    const conn = W.clouds.find(c => c.provider === 'google-drive');
+    if (!conn) throw new Error('No Google Drive connection');
+    const config = await W.ensureFreshToken(conn);
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`,{headers:{Authorization:'Bearer '+config.accessToken}});
+    if (!r.ok) throw new Error(await r.text());
+    const content = (await r.text()).replace(/^\uFEFF/,'').replace(/\s+$/,'');
+    const doc = {id:W.uid(),title:name,content,folderId:null,createdAt:W.now(),updatedAt:W.now(),wordCountGoal:null,charCountGoal:null};
+    await W.dbPut('documents', doc);
+    W.docs.unshift(doc);
+    W.renderDocs();
+    W.selectDoc(doc.id);
+    W.scheduleCloudPush();
+    if (statusEl) statusEl.textContent = `// imported "${name}" (${W.wc(content)} words)`;
+  } catch(err) {
+    if (statusEl) statusEl.textContent = '// ERROR: ' + (err.message || 'import failed');
+  }
+};
+
+// Hook into openModal to trigger the Drive listing after render
+const _origOpenModal = W.openModal;
+W.openModal = type => { _origOpenModal(type); if (type === 'import') W._importAfterOpen(); };
+
+// ── Revisions modal ────────────────────────────────────────
+// ── Save named version ─────────────────────────────────────
+W.saveNamedVersion = async () => {
+  const doc = W.docs.find(d => d.id === W.currentId);
+  if (!doc) return;
+
+  doc.content = document.getElementById('editor').value;
+  const el = document.getElementById('ver-btn');
+  // Inline name input
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'version name...';
+  input.style.cssText = 'background:transparent;border:1px solid var(--acc2);color:var(--acc2);font-family:inherit;font-size:9px;padding:2px 6px;outline:none;width:140px;text-transform:uppercase;letter-spacing:.1em';
+  let done = false;
+  const finish = async (save) => {
+    if (done) return; done = true;
+    if (save && input.value.trim()) {
+      const rev = {id:W.uid(),documentId:doc.id,content:doc.content,wordCount:W.wc(doc.content),createdAt:W.now(),name:input.value.trim()};
+      await W.dbPut('revisions', rev);
+      W.revisions.push(rev);
+      if (W.splitOpen) W.rpPopulateSelect();
+    }
+    input.replaceWith(el);
+    el.style.display = '';
+  };
+  input.addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); input.blur(); } if (e.key==='Escape') { done=true; input.replaceWith(el); el.style.display=''; } });
+  input.addEventListener('blur', () => finish(true));
+  el.style.display = 'none';
+  el.parentNode.insertBefore(input, el.nextSibling);
+  input.focus();
+};
+
+W.renameRevision = async (id, newName) => {
+  const rev = W.revisions.find(r => r.id === id);
+  if (!rev) return;
+  rev.name = newName;
+  await W.dbPut('revisions', rev);
+};
+
+// ── Diff engine ────────────────────────────────────────────
+// Simple line-based diff (Myers-like, O(nd))
+W.diffLines = (a, b) => {
+  const al = a.split('\n'), bl = b.split('\n');
+  const result = [];
+  // LCS via dynamic programming
+  const m = al.length, n = bl.length;
+  // For very long docs, fall back to simple comparison
+  if (m * n > 500000) {
+    // Simple: show all of a as removed, all of b as added
+    al.forEach(l => result.push({type:'-',text:l}));
+    bl.forEach(l => result.push({type:'+',text:l}));
+    return result;
+  }
+  const dp = Array.from({length:m+1}, () => new Uint16Array(n+1));
+  for (let i=1;i<=m;i++) for (let j=1;j<=n;j++) dp[i][j] = al[i-1]===bl[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j],dp[i][j-1]);
+  // Backtrack
+  let i=m, j=n;
+  const ops = [];
+  while (i>0 || j>0) {
+    if (i>0 && j>0 && al[i-1]===bl[j-1]) { ops.push({type:' ',text:al[i-1]}); i--; j--; }
+    else if (j>0 && (i===0 || dp[i][j-1] >= dp[i-1][j])) { ops.push({type:'+',text:bl[j-1]}); j--; }
+    else { ops.push({type:'-',text:al[i-1]}); i--; }
+  }
+  return ops.reverse();
+};
+
+W._revViewMode = 'content'; // 'content' or 'diff'
+W._revSelected = -1;
+
+W.modalHTML.revisions = () => {
+  const revs = W.revisions.filter(r => r.documentId === W.currentId).sort((a,b) => b.createdAt - a.createdAt);
+  const items = revs.length ? revs.map((r,i) => {
+    const d = new Date(r.createdAt);
+    const label = r.name ? `<div style="color:var(--acc2);font-size:10px;margin-bottom:2px">${W.esc(r.name)}</div>` : '';
+    const named = r.name ? ' style="border-left-color:color-mix(in srgb,var(--acc2) 50%,transparent)"' : '';
+    return `<div class="rev-item" onclick="W.showRev(${i})" id="rev-${i}"${named}>${label}${d.toLocaleDateString()} ${d.toLocaleTimeString()}<div style="font-size:9px;color:color-mix(in srgb,var(--text) 50%,transparent);margin-top:2px">${r.wordCount}w</div></div>`;
+  }).join('') : '<div style="padding:16px;font-size:11px;color:color-mix(in srgb,var(--text) 50%,transparent)">// no snapshots found<br>// click save_version in the status bar</div>';
+  W._revSelected = -1;
+  return `<div class="modal-bg" onclick="if(event.target===this)W.closeModal()"><div class="modal modal-lg" style="display:flex;flex-direction:column;max-height:80vh">
+    <div class="modal-head"><h2 style="color:var(--text)">// version_history</h2><button class="close" onclick="W.closeModal()">[x]</button></div>
+    <div style="display:flex;flex:1;overflow:hidden">
+      <div class="rev-list">${items}</div>
+      <div id="rev-preview" class="rev-preview" style="flex:1;display:flex;flex-direction:column">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;color:color-mix(in srgb,var(--text) 40%,transparent);font-size:12px">// select a version to preview</div>
+      </div>
+    </div></div></div>`;
+};
+
+W._revs = () => W.revisions.filter(r => r.documentId === W.currentId).sort((a,b) => b.createdAt - a.createdAt);
+
+W.showRev = idx => {
+  W._revSelected = idx;
+  W._revViewMode = 'content';
+  const revs = W._revs();
+  const rev = revs[idx];
+  if (!rev) return;
+  document.querySelectorAll('.rev-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('rev-'+idx)?.classList.add('active');
+  W._renderRevPreview(rev, idx);
+};
+
+W._renderRevPreview = (rev, idx) => {
+  const revs = W._revs();
+  const mode = W._revViewMode;
+  const nameDisplay = rev.name ? `<span style="color:var(--acc2);margin-right:8px">${W.esc(rev.name)}</span>` : '';
+  const toolbar = `<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid color-mix(in srgb,var(--text) 15%,transparent);flex-shrink:0">
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      ${nameDisplay}<span style="font-size:10px;color:color-mix(in srgb,var(--text) 60%,transparent)">${new Date(rev.createdAt).toLocaleString()} // ${rev.wordCount}w</span>
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
+      <button class="btn ${mode==='content'?'btn-cyan':'btn-pink'}" style="font-size:9px;padding:6px 10px" onclick="W._revViewMode='content';W._renderRevPreview(W._revs()[${idx}],${idx})">content</button>
+      <button class="btn ${mode==='diff'?'btn-cyan':'btn-pink'}" style="font-size:9px;padding:6px 10px" onclick="W._revViewMode='diff';W._renderRevPreview(W._revs()[${idx}],${idx})">diff</button>
+      <button class="btn btn-yellow" style="font-size:9px;padding:6px 10px" onclick="W.nameRev('${rev.id}')">name</button>
+      <button class="btn btn-yellow" style="font-size:9px;padding:6px 10px" onclick="W.restoreRev('${rev.id}')">&gt; restore</button>
+    </div>
+  </div>`;
+
+  let body;
+  if (mode === 'diff') {
+    // Diff against current document content or previous version
+    const current = document.getElementById('editor').value;
+    const ops = W.diffLines(rev.content, current);
+    const lines = ops.map(op => {
+      if (op.type === '+') return `<div style="background:color-mix(in srgb,var(--acc2) 12%,transparent);color:var(--acc2);padding:0 4px">+ ${W.esc(op.text)}</div>`;
+      if (op.type === '-') return `<div style="background:color-mix(in srgb,var(--acc) 12%,transparent);color:var(--acc);padding:0 4px;text-decoration:line-through;opacity:.7">- ${W.esc(op.text)}</div>`;
+      return `<div style="padding:0 4px;opacity:.5">${W.esc(op.text)}</div>`;
+    }).join('');
+    body = `<div style="font-size:10px;color:color-mix(in srgb,var(--text) 50%,transparent);margin-bottom:6px">// changes from this version to current</div><div style="font-size:12px;font-family:'Courier New',monospace;line-height:1.6;overflow-y:auto;flex:1">${lines}</div>`;
+  } else {
+    body = `<pre style="white-space:pre-wrap;font-size:12px;color:color-mix(in srgb,var(--text) 75%,transparent);line-height:1.6;overflow-y:auto;flex:1;margin:0">${W.esc(rev.content)}</pre>`;
+  }
+
+  document.getElementById('rev-preview').innerHTML = toolbar + body;
+};
+
+W.nameRev = async id => {
+  const rev = W.revisions.find(r => r.id === id);
+  if (!rev) return;
+  const el = document.querySelector(`[onclick="W.nameRev('${id}')"]`);
+  if (!el) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = rev.name || '';
+  input.placeholder = 'version name...';
+  input.style.cssText = 'background:transparent;border:1px solid var(--acc2);color:var(--acc2);font-family:inherit;font-size:9px;padding:2px 6px;outline:none;width:120px';
+  let done = false;
+  const finish = async () => {
+    if (done) return; done = true;
+    const v = input.value.trim();
+    rev.name = v || undefined;
+    await W.dbPut('revisions', rev);
+    W.openModal('revisions');
+  };
+  input.addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); input.blur(); } if (e.key==='Escape') { done=true; W.openModal('revisions'); } });
+  input.addEventListener('blur', finish);
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+};
+
+W.restoreRev = async id => {
+  const rev = W.revisions.find(r => r.id === id);
+  if (!rev || !confirm('Restore this version? Your current content will be replaced.')) return;
+  const doc = W.docs.find(d => d.id === W.currentId);
+  if (!doc) return;
+  doc.content = rev.content;
+  doc.updatedAt = W.now();
+  await W.dbPut('documents', doc);
+  document.getElementById('editor').value = rev.content;
+  W.renderHighlight();
+  W.updateCounts();
+  W.closeModal();
+};
+
+// ── Stats modal ────────────────────────────────────────────
+W.modalHTML.stats = () => {
+  const totalDocs = W.docs.length;
+  const totalWords = W.docs.reduce((s,d) => s + W.wc(d.content), 0);
+  const totalSessions = W.sessions.length;
+  const avgWords = totalSessions ? Math.round(W.sessions.reduce((s,x) => s + x.wordsWritten, 0) / totalSessions) : 0;
+
+  // Streaks
+  const byDay = {};
+  for (const s of W.sessions) { const d = new Date(s.startedAt).toISOString().slice(0,10); byDay[d] = (byDay[d]||0) + s.wordsWritten; }
+  const days = Object.keys(byDay).sort();
+  let streak=0,maxStreak=0,tmp=0;
+  const today = new Date();
+  for (let i=0;i<=365;i++) { const d=new Date(today);d.setDate(d.getDate()-i);const ds=d.toISOString().slice(0,10);if(byDay[ds])streak++;else if(i>0)break; }
+  for (let i=0;i<days.length;i++) { if(i===0)tmp=1;else{const p=new Date(days[i-1]),c=new Date(days[i]);tmp=(c-p)/(864e5)===1?tmp+1:1}maxStreak=Math.max(maxStreak,tmp); }
+
+  const sorted = days.map(d => ({date:d,words:byDay[d]}));
+  const last30 = sorted.slice(-30);
+  const maxW = Math.max(1,...last30.map(d=>d.words));
+  const bars = last30.map(d => `<div class="chart-bar" style="height:${Math.max(2,d.words/maxW*100)}%" title="${d.date}: ${d.words}w"></div>`).join('');
+
+  return `<div class="modal-bg" onclick="if(event.target===this)W.closeModal()"><div class="modal modal-md">
+    <div class="modal-head"><h2 style="color:var(--text)">// telemetry_data</h2><button class="close" onclick="W.closeModal()">[x]</button></div>
+    <div class="modal-body">
+      <div class="stat-grid" style="margin-bottom:16px">
+        <div class="stat-card"><div class="lbl" style="color:color-mix(in srgb,var(--text) 70%,transparent)">documents</div><div class="val" style="color:var(--text)">${totalDocs}</div></div>
+        <div class="stat-card"><div class="lbl" style="color:color-mix(in srgb,var(--text) 70%,transparent)">total_words</div><div class="val" style="color:var(--text)">${totalWords.toLocaleString()}</div></div>
+        <div class="stat-card"><div class="lbl" style="color:color-mix(in srgb,var(--acc2) 70%,transparent)">sessions</div><div class="val" style="color:var(--acc2)">${totalSessions}</div></div>
+        <div class="stat-card"><div class="lbl" style="color:color-mix(in srgb,var(--acc) 70%,transparent)">streak</div><div class="val" style="color:var(--acc)">${streak}d</div></div>
+        <div class="stat-card"><div class="lbl" style="color:color-mix(in srgb,var(--acc) 70%,transparent)">max_streak</div><div class="val" style="color:var(--acc)">${maxStreak}d</div></div>
+        <div class="stat-card"><div class="lbl" style="color:color-mix(in srgb,var(--acc2) 70%,transparent)">avg_words</div><div class="val" style="color:var(--acc2)">${avgWords}</div></div>
+      </div>
+      ${last30.length?`<div style="font-size:10px;color:rgba(5,217,232,.6);margin-bottom:8px;text-transform:uppercase;letter-spacing:.15em">// daily_output [30d]</div><div class="chart">${bars}</div><div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(5,217,232,.4);margin-top:4px"><span>${last30[0]?.date||''}</span><span>${last30[last30.length-1]?.date||''}</span></div>`:'<div style="text-align:center;padding:16px;font-size:11px;color:rgba(5,217,232,.4)">// no session data</div>'}
+    </div></div></div>`;
+};
+
+// ═══════════════════════════════════════════════════════════
+// CLOUD BACKUP — OAuth PKCE (no server secrets needed)
+// ═══════════════════════════════════════════════════════════
+// Google, Dropbox, and OneDrive all support OAuth PKCE for
+// public clients. The entire auth flow happens in-browser.
+// Client IDs are set in the CONFIG block at the top of this file.
+
+// ── PKCE helpers ───────────────────────────────────────────
+W.pkce = {};
+W.pkce.generateVerifier = () => {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  return btoa(String.fromCharCode(...arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+};
+W.pkce.sha256 = async str => {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+};
+
+// Provider configs (auth URLs, token URLs, scopes)
+W.PROVIDERS = {
+  'google-drive': {
+    name: 'Google Drive',
+    authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+    tokenUrl: 'https://oauth2.googleapis.com/token',
+    scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+    clientId: CONFIG.GOOGLE_CLIENT_ID,
+    needsServerToken: true, // Google requires client_secret for web apps
+  },
+  'dropbox': {
+    name: 'Dropbox',
+    authUrl: 'https://www.dropbox.com/oauth2/authorize',
+    tokenUrl: 'https://api.dropboxapi.com/oauth2/token',
+    scope: '',
+    clientId: CONFIG.DROPBOX_CLIENT_ID,
+    needsServerToken: false, // Dropbox supports pure PKCE
+  },
+  'onedrive': {
+    name: 'OneDrive',
+    authUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+    tokenUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+    scope: 'Files.ReadWrite offline_access',
+    clientId: CONFIG.ONEDRIVE_CLIENT_ID,
+    needsServerToken: true, // OneDrive requires client_secret for web apps
+  },
+};
+
+// ── Start OAuth PKCE flow ──────────────────────────────────
+W.oauthConnect = async provider => {
+  const p = W.PROVIDERS[provider];
+  if (!p || !p.clientId) return;
+  const verifier = W.pkce.generateVerifier();
+  const challenge = await W.pkce.sha256(verifier);
+  // Store verifier + provider in localStorage (persists across tabs)
+  const oauthState = crypto.randomUUID();
+  localStorage.setItem('oauth_verifier', verifier);
+  localStorage.setItem('oauth_provider', provider);
+  localStorage.setItem('oauth_state', oauthState);
+  const redirectUri = window.location.origin + window.location.pathname;
+  const params = new URLSearchParams({
+    client_id: p.clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    code_challenge: challenge,
+    code_challenge_method: 'S256',
+    state: oauthState,
+  });
+  if (p.scope) params.set('scope', p.scope);
+  // Dropbox needs token_access_type for refresh tokens
+  if (provider === 'dropbox') params.set('token_access_type', 'offline');
+  // Google needs access_type + prompt for refresh tokens
+  if (provider === 'google-drive') { params.set('access_type', 'offline'); params.set('prompt', 'consent'); }
+  window.location.href = p.authUrl + '?' + params.toString();
+};
+
+// ── Fetch user display name from provider API ──────────────
+W.fetchUserName = async (provider, token) => {
+  try {
+    if (provider === 'google-drive') {
+      const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: 'Bearer ' + token } });
+      if (r.ok) { const d = await r.json(); return d.name || d.email || 'Google Drive'; }
+    } else if (provider === 'dropbox') {
+      const r = await fetch('https://api.dropboxapi.com/2/users/get_current_account', { method: 'POST', headers: { Authorization: 'Bearer ' + token } });
+      if (r.ok) { const d = await r.json(); return d.name?.display_name || d.email || 'Dropbox'; }
+    } else if (provider === 'onedrive') {
+      const r = await fetch('https://graph.microsoft.com/v1.0/me', { headers: { Authorization: 'Bearer ' + token } });
+      if (r.ok) { const d = await r.json(); return d.displayName || d.userPrincipalName || 'OneDrive'; }
+    }
+  } catch {}
+  return null;
+};
+
+// ── Handle OAuth return (called on page load) ──────────────
+W.handleOAuthReturn = async () => {
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const savedState = localStorage.getItem('oauth_state');
+  if (!code || !state || state !== savedState) return;
+  // Clean URL
+  history.replaceState(null, '', url.pathname);
+  const provider = localStorage.getItem('oauth_provider');
+  const verifier = localStorage.getItem('oauth_verifier');
+  localStorage.removeItem('oauth_provider');
+  localStorage.removeItem('oauth_verifier');
+  localStorage.removeItem('oauth_state');
+  if (!provider || !verifier) return;
+  const p = W.PROVIDERS[provider];
+  if (!p || !p.clientId) return;
+  const redirectUri = url.origin + url.pathname;
+  try {
+    let res;
+    if (p.needsServerToken) {
+      // Exchange via server-side function (attaches client_secret)
+      res = await fetch('/api/oauth/token', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ provider, client_id: p.clientId, code, code_verifier: verifier, redirect_uri: redirectUri }),
+      });
+    } else {
+      // Pure PKCE — exchange directly with provider
+      const body = new URLSearchParams({ client_id: p.clientId, code, code_verifier: verifier, grant_type: 'authorization_code', redirect_uri: redirectUri });
+      res = await fetch(p.tokenUrl, { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body });
+    }
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    // Fetch user profile to show who's connected
+    const userName = await W.fetchUserName(provider, data.access_token);
+    const conn = {
+      id: W.uid(), provider, name: userName || p.name,
+      config: JSON.stringify({
+        provider, accessToken: data.access_token,
+        refreshToken: data.refresh_token || '',
+        expiresAt: W.now() + (data.expires_in || 3600) * 1000,
+        userName: userName || '',
+      }),
+      lastSyncAt: null, createdAt: W.now()
+    };
+    await W.dbPut('clouds', conn);
+    W.clouds.push(conn);
+    W.openModal('cloud');
+  } catch (err) {
+    alert('OAuth failed: ' + (err.message || err));
+  }
+};
+
+// ── Refresh expired tokens ──────────────────────────────────
+W.ensureFreshToken = async conn => {
+  const config = JSON.parse(conn.config);
+  if (conn.provider === 's3') return config;
+  if (!config.expiresAt || config.expiresAt > W.now() + 300000) return config;
+  if (!config.refreshToken) throw new Error('Token expired. Please reconnect.');
+  const p = W.PROVIDERS[conn.provider];
+  if (!p.clientId) throw new Error('Client ID not configured for ' + p.name);
+  let res;
+  if (p.needsServerToken) {
+    res = await fetch('/api/oauth/token', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ provider: conn.provider, client_id: p.clientId, refresh_token: config.refreshToken }),
+    });
+  } else {
+    const body = new URLSearchParams({ client_id: p.clientId, refresh_token: config.refreshToken, grant_type: 'refresh_token' });
+    res = await fetch(p.tokenUrl, { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body });
+  }
+  if (!res.ok) throw new Error('Token refresh failed');
+  const data = await res.json();
+  config.accessToken = data.access_token;
+  if (data.refresh_token) config.refreshToken = data.refresh_token;
+  config.expiresAt = W.now() + (data.expires_in || 3600) * 1000;
+  conn.config = JSON.stringify(config);
+  await W.dbPut('clouds', conn);
+  return config;
+};
+
+// ── Cloud backup modal ─────────────────────────────────────
+W.modalHTML.cloud = () => {
+  const conns = W.clouds.map(c => {
+    const cfg = JSON.parse(c.config);
+    const ls = c.lastSyncAt ? `last_sync: ${new Date(c.lastSyncAt).toLocaleString()}` : 'never synced';
+    const providerLabel = {'google-drive':'Google Drive','dropbox':'Dropbox','onedrive':'OneDrive','s3':'S3'}[c.provider]||c.provider;
+    const displayName = cfg.userName || c.name;
+    return `<div class="cloud-card"><div style="width:8px;height:8px;border-radius:50%;background:var(--text);box-shadow:0 0 6px var(--text);flex-shrink:0"></div><div class="info"><div class="name">${W.esc(displayName)}</div><div class="sub">${providerLabel} // ${ls}</div></div><button class="btn btn-cyan" style="font-size:9px" onclick="W.cloudBackup('${c.id}')">push</button><button class="btn btn-yellow" style="font-size:9px" onclick="W.cloudRestore('${c.id}')">pull</button><button class="btn btn-yellow" style="font-size:9px" onclick="W.resetAndPull('${c.id}')">reset&amp;pull</button><button class="btn btn-pink" style="font-size:9px" onclick="W.nukeAndRebuild('${c.id}')">fix&amp;rebuild</button><button class="btn btn-pink" style="font-size:9px" onclick="W.cloudRemove('${c.id}')">disconnect</button></div>`;
+  }).join('');
+
+  const oauthBtns = ['google-drive','dropbox','onedrive'].filter(id => W.PROVIDERS[id].clientId).map(id => {
+    const p = W.PROVIDERS[id];
+    return `<button class="provider-btn" style="grid-column:1/-1;border-color:rgba(5,217,232,.4)" onclick="W.oauthConnect('${id}')">&gt; sign_in_with_${p.name.toLowerCase().replace(/ /g,'_')}<div class="desc">// click to sign in with your ${p.name} account</div></button>`;
+  }).join('');
+
+  const s3Btn = `<button class="provider-btn" style="grid-column:1/-1;border-color:rgba(249,240,2,.35)" onclick="W.showS3Form()">&gt; connect_s3<div class="desc">// aws / minio / b2 / spaces</div></button>`;
+
+  return `<div class="modal-bg" onclick="if(event.target===this)W.closeModal()"><div class="modal modal-md">
+    <div class="modal-head"><h2 style="color:var(--acc)">// cloud_uplink</h2><button class="close" onclick="W.closeModal()">[x]</button></div>
+    <div class="modal-body">
+      <div id="cloud-status"></div>
+      <div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn btn-cyan" style="flex:1" onclick="W.localBackup()">&gt; local_archive</button><button class="btn btn-yellow" style="flex:1" onclick="W.localRestore()">&gt; restore_file</button></div>
+      <hr>
+      ${conns?`<div style="font-size:10px;color:rgba(5,217,232,.6);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.15em">// active_nodes</div>${conns}`:''}
+      <div style="font-size:10px;color:rgba(5,217,232,.6);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.15em">// connect_new</div>
+      <div id="cloud-form" style="display:grid;gap:8px">${oauthBtns}${s3Btn}</div>
+    </div></div></div>`;
+};
+
+// S3 manual credentials form
+W.showS3Form = () => {
+  document.getElementById('cloud-form').innerHTML = `<div style="grid-column:1/-1">
+    <div style="font-size:10px;color:rgba(249,240,2,.6);margin-bottom:8px">// s3-compatible storage credentials</div>
+    <div class="field"><label>node_name</label><input type="text" id="cf-name" placeholder="my_s3_node"></div>
+    <div class="field"><label>endpoint</label><input type="text" id="cf-endpoint" placeholder="https://s3.us-east-1.amazonaws.com"></div>
+    <div class="field"><label>bucket</label><input type="text" id="cf-bucket"></div>
+    <div class="field"><label>region</label><input type="text" id="cf-region" placeholder="us-east-1"></div>
+    <div class="field"><label>access_key_id</label><input type="text" id="cf-akid"></div>
+    <div class="field"><label>secret_key</label><input type="password" id="cf-skey"></div>
+    <div class="field"><label>prefix</label><input type="text" id="cf-folder" placeholder="backups/"></div>
+    <div style="display:flex;gap:8px"><button class="btn btn-yellow" style="flex:1" onclick="W.saveS3()">&gt; connect</button><button class="btn btn-pink" onclick="W.openModal('cloud')">cancel</button></div>
+  </div>`;
+};
+W.saveS3 = async () => {
+  const config = { provider:'s3', endpoint:document.getElementById('cf-endpoint')?.value||'', bucket:document.getElementById('cf-bucket')?.value||'', region:document.getElementById('cf-region')?.value||'', accessKeyId:document.getElementById('cf-akid')?.value||'', secretAccessKey:document.getElementById('cf-skey')?.value||'', folder:document.getElementById('cf-folder')?.value||'' };
+  const name = document.getElementById('cf-name')?.value || 'S3 Bucket';
+  const conn = {id:W.uid(),provider:'s3',name,config:JSON.stringify(config),lastSyncAt:null,createdAt:W.now()};
+  await W.dbPut('clouds', conn);
+  W.clouds.push(conn);
+  W.openModal('cloud');
+};
+
+W.cloudRemove = async id => {
+  if (!confirm('Disconnect this account? Your files on the cloud service are not affected.')) return;
+  await W.dbDel('clouds', id);
+  W.clouds = W.clouds.filter(c => c.id !== id);
+  W.openModal('cloud');
+};
+
+W.cloudBackup = async (id, silent) => {
+  if (W.isSyncing && !silent) return;
+  const conn = W.clouds.find(c => c.id === id);
+  if (!conn) { W.isSyncing = false; return; }
+  const statusEl = document.getElementById('cloud-status');
+  if (statusEl) statusEl.innerHTML = `<div class="status-msg">// uploading to ${W.esc(conn.name)}...</div>`;
+  W.updateSyncUI('syncing');
+  try {
+    const config = await W.ensureFreshToken(conn);
+    const manifestData = {
+      v:2, syncedAt:W.now(),
+      documents:W.docs.map(d=>({id:d.id,title:d.title,content:d.content,folderId:d.folderId,createdAt:d.createdAt,updatedAt:d.updatedAt,wordCountGoal:d.wordCountGoal,charCountGoal:d.charCountGoal})),
+      folders:W.folders.map(f=>({id:f.id,name:f.name,createdAt:f.createdAt})),
+    };
+    if (conn.provider === 'google-drive') {
+      // Load gdriveFiles map from local config (shared via manifest on pull)
+      if (config.gdriveFiles) manifestData.gdriveFiles = config.gdriveFiles;
+      await W.gdrivePush(config, conn, manifestData, statusEl);
+    } else if (conn.provider === 'dropbox') {
+      const backup = JSON.stringify(manifestData);
+      const filename = 'writer-sync.json';
+      const path = config.folder ? `${config.folder}/${filename}` : `/${filename}`;
+      const r = await fetch('https://content.dropboxapi.com/2/files/upload',{method:'POST',headers:{Authorization:`Bearer ${config.accessToken}`,'Content-Type':'application/octet-stream','Dropbox-API-Arg':JSON.stringify({path,mode:'overwrite',autorename:false,mute:true})},body:backup});
+      if (!r.ok) throw new Error(await r.text());
+    } else if (conn.provider === 'onedrive') {
+      const folder = config.folder || 'Writer Backups';
+      const r = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/${folder}/writer-sync.json:/content`,{method:'PUT',headers:{Authorization:`Bearer ${config.accessToken}`,'Content-Type':'application/json'},body:JSON.stringify(manifestData)});
+      if (!r.ok) throw new Error(await r.text());
+    } else if (conn.provider === 's3') {
+      const host = config.endpoint || `https://${config.bucket}.s3.${config.region||'us-east-1'}.amazonaws.com`;
+      const key = config.folder ? `${config.folder}writer-sync.json` : 'writer-sync.json';
+      const r = await fetch(`${host}/${key}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(manifestData)});
+      if (!r.ok) throw new Error(await r.text());
+    }
+    conn.lastSyncAt = W.now();
+    await W.dbPut('clouds', conn);
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// backup complete: ${W.docs.length} docs</div>`;
+    W.updateSyncUI('done');
+  } catch(err) {
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// ERROR: ${W.esc(err.message||'unknown')}</div>`;
+    W.updateSyncUI('error', err.message);
+  }
+};
+
+// ── Google Drive manifest sync (single JSON file) ──────────
+// ── Google Drive: push manifest + individual editable Docs ──
+W.gdrivePush = async (config, conn, manifestData, statusEl) => {
+  const token = config.accessToken;
+  const boundary = '---314159265358979323846';
+
+  // 1. Find or create the "Writer Backups" folder for editable docs
+  let folderId = config.driveFolderId;
+  if (!folderId) {
+    const sq = encodeURIComponent("name='Writer Backups' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+    const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=${sq}&fields=files(id)`,{headers:{Authorization:'Bearer '+token}});
+    if (sr.ok) { const sd = await sr.json(); folderId = sd.files?.[0]?.id; }
+    if (!folderId) {
+      const cr = await fetch('https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({name:'Writer Backups',mimeType:'application/vnd.google-apps.folder'})});
+      if (cr.ok) folderId = (await cr.json()).id;
+    }
+    if (folderId) config.driveFolderId = folderId;
+  }
+
+  // 2. Upload/update each doc as an editable Google Doc
+  // Use gdriveFiles map from manifest (shared across devices)
+  if (!manifestData.gdriveFiles) manifestData.gdriveFiles = {};
+  const gf = manifestData.gdriveFiles;
+  const changed = W.docs.filter(d => d.updatedAt > (conn.lastSyncAt || 0) || !gf[d.id]);
+  if (changed.length) {
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// pushing ${changed.length} docs to Google Drive...</div>`;
+    for (let i = 0; i < changed.length; i += 5) {
+      const results = await Promise.allSettled(changed.slice(i, i + 5).map(async doc => {
+        const meta = {name: doc.title, mimeType: 'application/vnd.google-apps.document'};
+        const existing = gf[doc.id];
+        let url, method;
+        if (existing) {
+          url = `https://www.googleapis.com/upload/drive/v3/files/${existing}?uploadType=multipart`;
+          method = 'PATCH';
+        } else {
+          if (folderId) meta.parents = [folderId];
+          url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+          method = 'POST';
+        }
+        const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: text/plain\r\n\r\n${doc.content}\r\n--${boundary}--`;
+        const r = await fetch(url,{method,headers:{Authorization:'Bearer '+token,'Content-Type':`multipart/related; boundary=${boundary}`},body});
+        if (r.ok && !existing) { gf[doc.id] = (await r.json()).id; }
+        else if (!r.ok) throw new Error(`Failed to push "${doc.title}": ${await r.text()}`);
+      }));
+      const failed = results.filter(r => r.status === 'rejected');
+      if (failed.length) console.warn('Some docs failed to push:', failed.map(f => f.reason?.message));
+    }
+  }
+
+  // 3. Upload the manifest (includes gdriveFiles map so other devices know the file IDs)
+  const manifest = JSON.stringify(manifestData);
+  const syncMeta = {name:'writer-sync.json', mimeType:'application/json'};
+  const syncFileId = config.syncFileId;
+  let sUrl, sMethod;
+  if (syncFileId) { sUrl = `https://www.googleapis.com/upload/drive/v3/files/${syncFileId}?uploadType=multipart`; sMethod = 'PATCH'; }
+  else { sUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart'; sMethod = 'POST'; if (folderId) syncMeta.parents = [folderId]; }
+  const sBody = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(syncMeta)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${manifest}\r\n--${boundary}--`;
+  const sr = await fetch(sUrl, {method:sMethod, headers:{Authorization:'Bearer '+token, 'Content-Type':`multipart/related; boundary=${boundary}`}, body:sBody});
+  if (!sr.ok) throw new Error(await sr.text());
+  if (!syncFileId) config.syncFileId = (await sr.json()).id;
+
+  // Save gdriveFiles map locally so we don't need to re-download manifest on next push
+  config.gdriveFiles = gf;
+  conn.config = JSON.stringify(config);
+  await W.dbPut('clouds', conn);
+};
+
+// ── Google Drive: pull manifest + optionally check Google Docs edits ──
+W.gdrivePull = async (config, conn, statusEl) => {
+  const token = config.accessToken;
+
+  // 1. Download manifest (this is the source of truth)
+  let syncFileId = config.syncFileId;
+  let mr;
+
+  // Try cached file ID
+  if (syncFileId) {
+    mr = await fetch(`https://www.googleapis.com/drive/v3/files/${syncFileId}?alt=media`,{headers:{Authorization:'Bearer '+token}});
+    if (!mr.ok) { syncFileId = null; } // stale — search below
+  }
+
+  // Search for manifest if no cached ID or cached ID was stale
+  if (!syncFileId) {
+    const sq = encodeURIComponent("name='writer-sync.json' and trashed=false");
+    const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=${sq}&fields=files(id)&orderBy=modifiedTime desc&pageSize=1`,{headers:{Authorization:'Bearer '+token}});
+    if (sr.ok) { const sd = await sr.json(); syncFileId = sd.files?.[0]?.id; }
+    if (!syncFileId) return null;
+    mr = await fetch(`https://www.googleapis.com/drive/v3/files/${syncFileId}?alt=media`,{headers:{Authorization:'Bearer '+token}});
+    if (!mr.ok) return null;
+  }
+
+  // Save the current file ID
+  if (config.syncFileId !== syncFileId) {
+    config.syncFileId = syncFileId;
+    conn.config = JSON.stringify(config);
+    await W.dbPut('clouds', conn);
+  }
+  const data = await mr.json();
+  if (!data.documents) return null;
+
+  // 2. Check if any Google Docs were edited AFTER the manifest was last synced
+  //    (i.e., user opened the doc in Google Docs and made changes)
+  const gf = data.gdriveFiles || {};
+  const manifestTime = data.syncedAt || 0;
+  const docsToCheck = data.documents.filter(d => gf[d.id]);
+
+  if (docsToCheck.length && statusEl) statusEl.innerHTML = `<div class="status-msg">// checking ${docsToCheck.length} Google Docs for edits...</div>`;
+
+  for (let i = 0; i < docsToCheck.length; i += 5) {
+    await Promise.all(docsToCheck.slice(i, i + 5).map(async doc => {
+      try {
+        const gFileId = gf[doc.id];
+        const metaR = await fetch(`https://www.googleapis.com/drive/v3/files/${gFileId}?fields=modifiedTime`,{headers:{Authorization:'Bearer '+token}});
+        if (!metaR.ok) return;
+        const gDocTime = new Date((await metaR.json()).modifiedTime).getTime();
+        // Only download if the Google Doc was modified AFTER the manifest was pushed
+        // (meaning someone edited it in Google Docs, not just our push touching it)
+        if (gDocTime > manifestTime + 60000) { // 60s grace period for push propagation
+          const dr = await fetch(`https://www.googleapis.com/drive/v3/files/${gFileId}/export?mimeType=text/plain`,{headers:{Authorization:'Bearer '+token}});
+          if (!dr.ok) return;
+          const content = (await dr.text()).replace(/^\uFEFF/,'').replace(/\s+$/,'');
+          if (content !== doc.content.replace(/\s+$/,'')) {
+            doc.content = content;
+            doc.updatedAt = gDocTime;
+          }
+        }
+      } catch {}
+    }));
+  }
+
+  // Save gdriveFiles map locally
+  if (gf && Object.keys(gf).length) {
+    config.gdriveFiles = gf;
+    conn.config = JSON.stringify(config);
+    await W.dbPut('clouds', conn);
+  }
+
+  return data;
+};
+
+// ── Cloud restore (pull) ───────────────────────────────────
+W.cloudRestore = async (id, _internal) => {
+  if (W.isSyncing && !_internal) return;
+  const conn = W.clouds.find(c => c.id === id);
+  if (!conn) { W.isSyncing = false; return; }
+  const statusEl = document.getElementById('cloud-status');
+  if (statusEl) statusEl.innerHTML = `<div class="status-msg">// pulling from ${W.esc(conn.name)}...</div>`;
+  try {
+    const config = await W.ensureFreshToken(conn);
+    if (conn.provider === 'google-drive') {
+      await W.restoreFromGDrive(config, conn, statusEl);
+    } else if (conn.provider === 'dropbox') {
+      await W.restoreFromDropbox(config, statusEl);
+    } else {
+      throw new Error('Restore not supported for ' + conn.provider);
+    }
+    conn.lastSyncAt = W.now();
+    await W.dbPut('clouds', conn);
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// pull complete</div>`;
+  } catch(err) {
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// ERROR: ${W.esc(err.message||'unknown')}</div>`;
+  }
+};
+
+W.resetAndPull = async id => {
+  if (!confirm('This will DELETE all local documents and folders, then re-download everything from the cloud. Continue?')) return;
+  W.isSyncing = true;
+  const statusEl = document.getElementById('cloud-status');
+  try {
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// wiping local data...</div>`;
+    for (const d of W.docs) await W.dbDel('documents', d.id);
+    for (const f of W.folders) await W.dbDel('folders', f.id);
+    W.docs = [];
+    W.folders = [];
+    W.currentId = null;
+    document.getElementById('editor').value = '';
+    document.getElementById('editor-highlight').innerHTML = '\n';
+    document.getElementById('topbar-title').textContent = '';
+    W.renderDocs();
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// pulling fresh from cloud...</div>`;
+    W.isSyncing = false;
+    await W.cloudRestore(id);
+    if (W.docs.length) W.selectDoc(W.docs[0].id);
+    W.renderDocs();
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// reset complete: ${W.docs.length} docs, ${W.folders.length} folders</div>`;
+  } catch(err) {
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// ERROR: ${W.esc(err.message||'unknown')}</div>`;
+  } finally {
+    W.isSyncing = false;
+  }
+};
+
+// Full cleanup: dedup local docs, wipe Google Drive, push clean
+W.nukeAndRebuild = async id => {
+  if (!confirm('This will:\n1. Deduplicate your local docs (keep newest of each title)\n2. Delete ALL files in Google Drive Writer Backups folder\n3. Push your clean local set fresh\n\nContinue?')) return;
+  const conn = W.clouds.find(c => c.id === id);
+  if (!conn) return;
+  W.isSyncing = true;
+  const statusEl = document.getElementById('cloud-status');
+  try {
+    // Step 1: Dedup local docs by title (keep the one with most content, or newest)
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// deduplicating local docs...</div>`;
+    const byTitle = {};
+    for (const d of W.docs) {
+      if (!byTitle[d.title] || d.content.length > byTitle[d.title].content.length || (d.content.length === byTitle[d.title].content.length && d.updatedAt > byTitle[d.title].updatedAt)) {
+        byTitle[d.title] = d;
+      }
+    }
+    const keepers = new Set(Object.values(byTitle).map(d => d.id));
+    const dupes = W.docs.filter(d => !keepers.has(d.id));
+    for (const d of dupes) await W.dbDel('documents', d.id);
+    W.docs = W.docs.filter(d => keepers.has(d.id));
+    console.log(`[nuke] dedup: kept ${keepers.size}, removed ${dupes.length} duplicates`);
+
+    // Step 2: Wipe Google Drive — delete all files in Writer Backups folder and the manifest
+    const config = await W.ensureFreshToken(conn);
+    const token = config.accessToken;
+
+    // Find and delete Writer Backups folder contents
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// clearing Google Drive...</div>`;
+    const sq = encodeURIComponent("name='Writer Backups' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+    const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=${sq}&fields=files(id)`,{headers:{Authorization:'Bearer '+token}});
+    if (sr.ok) {
+      const folders = (await sr.json()).files || [];
+      for (const folder of folders) {
+        // List all files in the folder
+        const fq = encodeURIComponent(`'${folder.id}' in parents and trashed=false`);
+        const fr = await fetch(`https://www.googleapis.com/drive/v3/files?q=${fq}&fields=files(id)&pageSize=1000`,{headers:{Authorization:'Bearer '+token}});
+        if (fr.ok) {
+          const files = (await fr.json()).files || [];
+          if (statusEl) statusEl.innerHTML = `<div class="status-msg">// deleting ${files.length} files from Drive...</div>`;
+          for (let i = 0; i < files.length; i += 5) {
+            await Promise.allSettled(files.slice(i, i + 5).map(f =>
+              fetch(`https://www.googleapis.com/drive/v3/files/${f.id}`,{method:'DELETE',headers:{Authorization:'Bearer '+token}})
+            ));
+          }
+        }
+        // Delete the folder itself
+        await fetch(`https://www.googleapis.com/drive/v3/files/${folder.id}`,{method:'DELETE',headers:{Authorization:'Bearer '+token}});
+      }
+    }
+
+    // Delete the manifest file if it exists
+    if (config.syncFileId) {
+      await fetch(`https://www.googleapis.com/drive/v3/files/${config.syncFileId}`,{method:'DELETE',headers:{Authorization:'Bearer '+token}}).catch(()=>{});
+      delete config.syncFileId;
+    }
+
+    // Clear all gdrive file mappings
+    delete config.gdriveFiles;
+    delete config.driveFolderId;
+    conn.config = JSON.stringify(config);
+    conn.lastSyncAt = null;
+    await W.dbPut('clouds', conn);
+
+    // Step 3: Push clean
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// pushing ${W.docs.length} clean docs...</div>`;
+    W.isSyncing = false;
+    await W.cloudBackup(id);
+
+    W.renderDocs();
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// rebuild complete: ${W.docs.length} docs pushed clean. now do reset&pull on other devices.</div>`;
+    console.log(`[nuke] rebuild complete. ${W.docs.length} docs pushed.`);
+  } catch(err) {
+    if (statusEl) statusEl.innerHTML = `<div class="status-msg">// ERROR: ${W.esc(err.message||'unknown')}</div>`;
+    console.error('[nuke] error:', err);
+  } finally {
+    W.isSyncing = false;
+  }
+};
+
+W.restoreFromGDrive = async (config, conn, statusEl) => {
+  const data = await W.gdrivePull(config, conn, statusEl);
+  if (!data || !data.documents) { if (statusEl) statusEl.innerHTML = `<div class="status-msg">// no sync data in cloud yet. push first.</div>`; return; }
+  const result = await W.mergeFromCloud(data, statusEl);
+  if (statusEl) statusEl.innerHTML = `<div class="status-msg">// pull complete: ${result.imported} new, ${result.updated} updated, ${result.skipped} unchanged</div>`;
+};
+
+// ── Shared merge logic for all providers ───────────────────
+W.mergeFromCloud = async (data, statusEl) => {
+  // Save any unsaved editor content before merging to avoid data loss
+  if (W.currentId) {
+    const cur = W.docs.find(d => d.id === W.currentId);
+    const edVal = document.getElementById('editor').value;
+    if (cur && edVal !== cur.content) { cur.content = edVal; cur.updatedAt = W.now(); await W.dbPut('documents', cur); }
+  }
+  const cloudDocs = data.documents || [];
+  const cloudFolders = data.folders || [];
+  let imported = 0, updated = 0, skipped = 0;
+  const conflicts = []; // docs where local was overwritten by cloud
+
+  if (statusEl) statusEl.innerHTML = `<div class="status-msg">// merging ${cloudDocs.length} docs, ${cloudFolders.length} folders...</div>`;
+
+  // Merge folders by ID
+  for (const cf of cloudFolders) {
+    const local = W.folders.find(f => f.id === cf.id);
+    if (!local) {
+      await W.dbPut('folders', cf);
+      W.folders.push(cf);
+    } else if (cf.name !== local.name) {
+      local.name = cf.name;
+      await W.dbPut('folders', local);
+    }
+  }
+
+  // Merge documents by ID only (same UUID = same doc across all devices)
+  for (const cd of cloudDocs) {
+    const local = W.docs.find(d => d.id === cd.id);
+    if (local) {
+      if (cd.updatedAt > local.updatedAt) {
+        // Cloud is newer — save local as a revision before overwriting
+        if (local.content && local.content !== cd.content) {
+          await W.dbPut('revisions', {id:W.uid(),documentId:local.id,content:local.content,wordCount:W.wc(local.content),createdAt:W.now(),name:'pre-sync backup'});
+          conflicts.push(local.title);
+        }
+        local.title = cd.title;
+        local.content = cd.content;
+        local.folderId = cd.folderId;
+        local.updatedAt = cd.updatedAt;
+        local.wordCountGoal = cd.wordCountGoal;
+        local.charCountGoal = cd.charCountGoal;
+        await W.dbPut('documents', local);
+        updated++;
+      } else {
+        skipped++;
+      }
+    } else {
+      // Double-check IDB directly (W.docs may be stale)
+      const inDB = await W.dbGet('documents', cd.id);
+      if (inDB) {
+        // Already in IDB but wasn't in W.docs — just update W.docs
+        if (cd.updatedAt > inDB.updatedAt) { await W.dbPut('documents', cd); }
+        skipped++;
+      } else {
+        // Genuinely new from cloud
+        const clean = {id:cd.id,title:cd.title,content:cd.content,folderId:cd.folderId,createdAt:cd.createdAt,updatedAt:cd.updatedAt,wordCountGoal:cd.wordCountGoal||null,charCountGoal:cd.charCountGoal||null};
+        await W.dbPut('documents', clean);
+        imported++;
+      }
+    }
+  }
+
+  // Don't delete local docs/folders that are
+  // missing from the cloud manifest. A missing doc could be a new local
+  // doc that hasn't been pushed yet. Deletion is only handled explicitly
+  // via W.deleteDoc which pushes immediately after deleting.
+
+  // Reload everything
+  W.docs = (await W.dbAll('documents')).sort((a,b) => b.updatedAt - a.updatedAt);
+  W.folders = await W.dbAll('folders');
+  W.renderDocs();
+  if (W.currentId) {
+    const doc = W.docs.find(d => d.id === W.currentId);
+    if (doc) { document.getElementById('editor').value = doc.content; W.renderHighlight(); W.updateCounts(); document.getElementById('topbar-title').textContent = doc.title; }
+  }
+  console.log(`[sync] merge: ${imported} imported, ${updated} updated, ${skipped} skipped, ${conflicts.length} conflicts. local docs: ${W.docs.length}`);
+  if (conflicts.length) W.showConflictBanner(conflicts);
+  return { imported, updated, skipped, conflicts };
+};
+
+W.restoreFromDropbox = async (config, statusEl) => {
+  const token = config.accessToken;
+  const folder = config.folder || '';
+  // Try to download writer-sync.json directly
+  const path = folder ? `${folder}/writer-sync.json` : '/writer-sync.json';
+  const dr = await fetch('https://content.dropboxapi.com/2/files/download', {
+    method:'POST',
+    headers:{Authorization:'Bearer '+token, 'Dropbox-API-Arg': JSON.stringify({path})}
+  });
+  if (!dr.ok) throw new Error('No sync file found in Dropbox. Push first.');
+  const data = await dr.json();
+  if (!data.documents) throw new Error('Sync file is empty or invalid.');
+  const result = await W.mergeFromCloud(data, statusEl);
+  if (statusEl) statusEl.innerHTML = `<div class="status-msg">// pull complete: ${result.imported} new, ${result.updated} updated, ${result.skipped} unchanged</div>`;
+};
+
+// ── Sync UI & auto-sync ────────────────────────────────────
+W.updateSyncUI = (state, msg) => {
+  const el = document.getElementById('sync-status');
+  if (!W.clouds.length) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  const auto = W.settings.autoSync === 'true';
+  el.className = auto ? 'auto' : '';
+  if (state === 'syncing') { el.className += ' syncing'; el.textContent = 'syncing...'; W.isSyncing = true; }
+  else if (state === 'error') { el.className += ' error'; el.textContent = 'sync error'; W.isSyncing = false; }
+  else {
+    W.isSyncing = false;
+    const lastConn = W.clouds.reduce((a,b) => (b.lastSyncAt||0) > (a.lastSyncAt||0) ? b : a, W.clouds[0]);
+    const ago = lastConn.lastSyncAt ? W.timeAgo(lastConn.lastSyncAt) : 'never';
+    el.textContent = (auto ? 'auto ' : '') + 'synced: ' + ago;
+  }
+};
+W.timeAgo = ts => {
+  const s = Math.floor((W.now() - ts) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  if (s < 86400) return Math.floor(s/3600) + 'h ago';
+  return Math.floor(s/86400) + 'd ago';
+};
+W.syncAll = async () => {
+  if (W.isSyncing || !W.clouds.length || !navigator.onLine) { W.syncPending = true; return; }
+  W.isSyncing = true;
+  try {
+    for (const c of W.clouds) { try { await W.cloudRestore(c.id, true); } catch {} }
+    for (const c of W.clouds) { try { await W.cloudBackup(c.id, true); } catch {} }
+  } finally {
+    W.isSyncing = false;
+    W.updateSyncUI('done');
+  }
+};
+W.toggleAutoSync = async () => {
+  const on = W.settings.autoSync !== 'true';
+  await W.setSetting('autoSync', String(on));
+  W.startAutoSync();
+  W.updateSyncUI();
+};
+W.startAutoSync = () => {
+  clearInterval(W.autoSyncTimer);
+  W.autoSyncTimer = null;
+  if (W.settings.autoSync === 'true' && W.clouds.length) {
+    W.autoSyncTimer = setInterval(() => W.syncAll(), 5 * 60 * 1000);
+  }
+  W.updateSyncUI();
+};
+
+// Debounced cloud push — runs 30s after last local save
+W.scheduleCloudPush = () => {
+  if (!W.clouds.length || W.isSyncing) return;
+  W.syncPending = true; // mark that we have unsynced changes
+  clearTimeout(W.cloudPushTimer);
+  if (!navigator.onLine) return; // don't try to sync offline — will sync on reconnect
+  W.cloudPushTimer = setTimeout(() => { if (!W.isSyncing) W.syncAll(); }, 30000);
+};
+
+// ── Offline/online handling ────────────────────────────────
+W.syncPending = false;
+W.showConflictBanner = conflicts => {
+  const el = document.getElementById('conflict-banner');
+  if (!conflicts || !conflicts.length) { el.style.display = 'none'; return; }
+  const names = conflicts.length <= 3 ? conflicts.map(n => '"' + W.esc(n) + '"').join(', ') : conflicts.slice(0,2).map(n => '"' + W.esc(n) + '"').join(', ') + ' +' + (conflicts.length - 2) + ' more';
+  el.style.display = 'flex';
+  el.innerHTML = `<span style="flex:1">sync conflict: ${names} was overwritten. local backup saved in versions.</span><button class="view-btn" onclick="W.openModal('revisions')">view</button><button class="dismiss" onclick="document.getElementById('conflict-banner').style.display='none'">&times;</button>`;
+};
+
+W.updateOnlineStatus = () => {
+  const badge = document.getElementById('offline-badge');
+  if (navigator.onLine) {
+    badge.style.display = 'none';
+    // Sync any pending changes when we come back online
+    if (W.syncPending && W.clouds.length && !W.isSyncing) {
+      W.syncPending = false;
+      W.syncAll();
+    }
+  } else {
+    badge.style.display = '';
+  }
+};
+window.addEventListener('online', W.updateOnlineStatus);
+window.addEventListener('offline', W.updateOnlineStatus);
+
+W.localBackup = () => {
+  const backup = JSON.stringify({
+    v:2, exportedAt:new Date().toISOString(),
+    documents:W.docs.map(d=>({id:d.id,title:d.title,content:d.content,folderId:d.folderId,createdAt:d.createdAt,updatedAt:d.updatedAt,wordCountGoal:d.wordCountGoal,charCountGoal:d.charCountGoal})),
+    folders:W.folders.map(f=>({id:f.id,name:f.name,createdAt:f.createdAt})),
+  },null,2);
+  const blob = new Blob([backup],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `writer-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+W.localRestore = () => {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = async () => {
+    const file = input.files?.[0]; if(!file)return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (!data.documents?.length) { alert('Invalid backup file'); return; }
+      const result = await W.mergeFromCloud(data, null);
+      alert(`Restored: ${result.imported} new, ${result.updated} updated, ${result.skipped} unchanged`);
+    } catch { alert('Failed to read backup'); }
+  };
+  input.click();
+};
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+(async () => {
+  await W.initDB();
+  await W.loadAll();
+  W.applySettings();
+  await W.handleOAuthReturn();
+  if (W.docs.length) {
+    W.selectDoc(W.docs[0].id);
+  } else {
+    const doc = {id:W.uid(),title:'My First Story',content:'',folderId:null,createdAt:W.now(),updatedAt:W.now(),wordCountGoal:null,charCountGoal:null};
+    await W.dbPut('documents', doc);
+    W.docs.push(doc);
+    W.selectDoc(doc.id);
+  }
+  W.renderDocs();
+  // Start with sidebar closed on mobile
+  if (W.isMobile()) document.getElementById('sidebar').classList.add('closed');
+  // Set up sync UI
+  const syncEl = document.getElementById('sync-status');
+  syncEl.addEventListener('click', () => W.syncAll());
+  syncEl.addEventListener('contextmenu', e => { e.preventDefault(); W.toggleAutoSync(); });
+  // On mobile, long-press for auto-sync toggle (no right-click)
+  let syncLongPress;
+  syncEl.addEventListener('touchstart', e => { syncLongPress = setTimeout(() => { e.preventDefault(); W.toggleAutoSync(); }, 600); });
+  syncEl.addEventListener('touchend', () => clearTimeout(syncLongPress));
+  syncEl.addEventListener('touchmove', () => clearTimeout(syncLongPress));
+  W.startAutoSync();
+  W.updateOnlineStatus();
+  // Sync on open: pull then push (runs once, non-blocking)
+  if (W.clouds.length) {
+    W.syncAll().then(() => {
+      console.log('[sync] startup sync complete. docs:', W.docs.length, 'folders:', W.folders.length);
+    }).catch(e => { console.warn('[sync] startup sync failed:', e); });
+  }
+})();
+
+// Service worker
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+</script>
+</body>
+</html>

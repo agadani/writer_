@@ -1,0 +1,12 @@
+{
+  "name": "WRITER_",
+  "short_name": "WRITER_",
+  "description": "Distraction-free Writer",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a12",
+  "theme_color": "#05d9e8",
+  "icons": [
+    {"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml"}
+  ]
+}
