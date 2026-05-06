@@ -1115,14 +1115,14 @@ W.playKeystroke = type => {
   try {
     const c = getAC();
     if (c.state === 'suspended') { c.resume(); return; } // will play next time
-    ({mechanical:skMech,electric:skElec,laser:skLaser,sandstorm:skSand})[type]?.(c);
+    ({mechanical:skMech,electric:skElec,laser:skLaser,sandstorm:skSand,birdsong:skBird})[type]?.(c);
   } catch {}
 };
 W.playReturn = type => {
   try {
     const c = getAC();
     if (c.state === 'suspended') { c.resume(); return; }
-    ({mechanical:srMech,electric:srElec,laser:srLaser,sandstorm:srSand})[type]?.(c);
+    ({mechanical:srMech,electric:srElec,laser:srLaser,sandstorm:srSand,birdsong:srBird})[type]?.(c);
   } catch {}
 };
 
@@ -1138,6 +1138,9 @@ function srElec(c){const n=c.currentTime,l=c.sampleRate*.12,b=c.createBuffer(1,l
 function srLaser(c){const n=c.currentTime,dur=.2;const o=c.createOscillator();o.type='square';o.frequency.setValueAtTime(1800,n);o.frequency.exponentialRampToValueAtTime(50,n+dur);const o2=c.createOscillator();o2.type='sawtooth';o2.frequency.setValueAtTime(2400,n);o2.frequency.exponentialRampToValueAtTime(30,n+dur*.7);const g=c.createGain();g.gain.setValueAtTime(.12,n);g.gain.exponentialRampToValueAtTime(.001,n+dur);const g2=c.createGain();g2.gain.setValueAtTime(.05,n);g2.gain.exponentialRampToValueAtTime(.001,n+dur*.6);o.connect(g);o2.connect(g2);g.connect(c.destination);g2.connect(c.destination);o.start(n);o2.start(n);o.stop(n+dur+.01);o2.stop(n+dur+.01)}
 function srSand(c){const n=c.currentTime;stab(c,493.88,n,.06);stab(c,659.25,n+.07,.1);ssIdx=0}
 function stab(c,f,t,dur){const o=c.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,t);const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.setValueAtTime(3500,t);fl.frequency.exponentialRampToValueAtTime(500,t+dur);fl.Q.value=10;const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.14,t+.005);g.gain.setValueAtTime(.14,t+dur*.5);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(fl);fl.connect(g);g.connect(c.destination);o.start(t);o.stop(t+dur+.01)}
+const birdNotes=[2200,2600,2400,2800,2100,2500,2700,2300,2900,2000];let bnIdx=0;
+function skBird(c){const n=c.currentTime,base=birdNotes[bnIdx%birdNotes.length]+Math.random()*300-150;bnIdx++;const dur=.06+Math.random()*.03;const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(base,n);o.frequency.exponentialRampToValueAtTime(base*(1.1+Math.random()*.3),n+dur*.4);o.frequency.exponentialRampToValueAtTime(base*.8,n+dur);const g=c.createGain();g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(.1,n+.005);g.gain.setValueAtTime(.1,n+dur*.3);g.gain.exponentialRampToValueAtTime(.001,n+dur);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+dur+.01)}
+function srBird(c){const n=c.currentTime,f1=2400+Math.random()*400,f2=f1*1.25;for(let i=0;i<4;i++){const t=n+i*.045,f=i%2===0?f2:f1;const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.85,t+.04);const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.09,t+.005);g.gain.exponentialRampToValueAtTime(.001,t+.04);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.05)}}
 
 // ═══════════════════════════════════════════════════════════
 // MODALS
@@ -1180,7 +1183,7 @@ W.modalHTML.settings = () => {
       <div class="field"><label>font_size: <span style="color:var(--acc2)">${s.fontSize}px</span></label><input type="range" min="12" max="32" value="${s.fontSize}" oninput="W.setSetting('fontSize',this.value);this.previousElementSibling.querySelector('span').textContent=this.value+'px'"></div>
       <div class="field"><label>line_height: <span style="color:var(--acc2)">${s.lineSpacing}</span></label><input type="range" min="1" max="3" step="0.1" value="${s.lineSpacing}" oninput="W.setSetting('lineSpacing',this.value);this.previousElementSibling.querySelector('span').textContent=this.value"></div>
       <div class="field"><label style="cursor:pointer"><input type="checkbox" ${s.soundEnabled==='true'?'checked':''} onchange="W.setSetting('soundEnabled',String(this.checked));W.openModal('settings')"> audio_feedback</label></div>
-      ${s.soundEnabled==='true'?`<div class="field"><select onchange="W.setSetting('soundType',this.value)"><option value="mechanical" ${s.soundType==='mechanical'?'selected':''}>mechanical_keys</option><option value="electric" ${s.soundType==='electric'?'selected':''}>electric_keys</option><option value="laser" ${s.soundType==='laser'?'selected':''}>space_invader_laser</option><option value="sandstorm" ${s.soundType==='sandstorm'?'selected':''}>darude_sandstorm</option></select></div>`:''}
+      ${s.soundEnabled==='true'?`<div class="field"><select onchange="W.setSetting('soundType',this.value)"><option value="mechanical" ${s.soundType==='mechanical'?'selected':''}>mechanical_keys</option><option value="electric" ${s.soundType==='electric'?'selected':''}>electric_keys</option><option value="laser" ${s.soundType==='laser'?'selected':''}>space_invader_laser</option><option value="sandstorm" ${s.soundType==='sandstorm'?'selected':''}>darude_sandstorm</option><option value="birdsong" ${s.soundType==='birdsong'?'selected':''}>birdsong</option></select></div>`:''}
       <div class="field"><label style="cursor:pointer;color:color-mix(in srgb,var(--acc) 80%,transparent)"><input type="checkbox" ${s.hemingwayMode==='true'?'checked':''} onchange="W.setSetting('hemingwayMode',String(this.checked))"> hemingway_protocol</label><div style="font-size:10px;color:color-mix(in srgb,var(--acc) 50%,transparent);margin-top:4px;margin-left:20px">// disables delete. write forward only.</div></div>
       <div class="field"><label>comment_markers</label><div style="display:flex;gap:8px"><div style="flex:1"><div style="font-size:9px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-bottom:2px">open</div><input type="text" value="${W.esc(s.commentOpen||'%%')}" placeholder="%%" onchange="W.setSetting('commentOpen',this.value);W.renderHighlight()"></div><div style="flex:1"><div style="font-size:9px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-bottom:2px">close</div><input type="text" value="${W.esc(s.commentClose||'%%')}" placeholder="%%" onchange="W.setSetting('commentClose',this.value);W.renderHighlight()"></div></div><div style="font-size:10px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-top:4px">// text between these markers is greyed out</div></div>
 
