@@ -1,0 +1,23 @@
+public/icon.svg
+  9f3cd9852b3bdd9c 6-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "9fdf358046c03a1697993f066551142265a7a163",
+  "prompts": {
+    "9f3cd9852b3bdd9c": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_205a31f6affeTeDKqACEKhv06g",
+        "model": "anthropic/claude-opus-4-6"
+      },
+      "human_author": "avani",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 2,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}
