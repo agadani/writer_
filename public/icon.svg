@@ -3,6 +3,6 @@
   <rect x='26' y='26' width='460' height='460' fill='none' stroke='#05d9e8' stroke-width='5' opacity='.3'/>
   <line x1='26' y1='77' x2='77' y2='26' stroke='#05d9e8' stroke-width='8' opacity='.5'/>
   <line x1='435' y1='486' x2='486' y2='435' stroke='#ff2a6d' stroke-width='8' opacity='.5'/>
-  <text x='50%' y='52%' font-family='Courier New,monospace' font-size='230' fill='#05d9e8' text-anchor='middle' dominant-baseline='middle' font-weight='bold'>W</text>
-  <text x='370' y='318' font-family='Courier New,monospace' font-size='92' fill='#ff2a6d' text-anchor='middle' dominant-baseline='middle' font-weight='bold'>_</text>
+  <text x='42%' y='52%' font-family='Courier New,monospace' font-size='200' fill='#05d9e8' text-anchor='middle' dominant-baseline='middle' font-weight='bold'>&gt;</text>
+  <text x='68%' y='52%' font-family='Courier New,monospace' font-size='200' fill='#ff2a6d' text-anchor='middle' dominant-baseline='middle' font-weight='bold'>_</text>
 </svg>
