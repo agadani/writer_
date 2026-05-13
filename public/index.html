@@ -72,12 +72,24 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
 #topbar .shortcuts span{cursor:pointer;padding:2px 4px;border-radius:2px;transition:color .15s,background .15s}
 #topbar .shortcuts span:hover{color:var(--text);background:color-mix(in srgb,var(--text) 10%,transparent)}
 #editor-wrap{position:relative;flex:1;overflow:hidden}
-/* Highlight overlay: laid out at full document height, translated to follow scroll.
-   Transform-based sync is sub-pixel accurate; assigning scrollTop is not. */
-#editor-highlight{position:absolute;left:0;right:0;top:0;padding:32px 64px;font-family:ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace,monospace;font-size:18px;line-height:1.8;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;pointer-events:none;border:none;letter-spacing:0;word-spacing:normal;font-kerning:none;font-variant-ligatures:none;font-feature-settings:normal;-webkit-text-size-adjust:100%;text-size-adjust:100%;tab-size:4;-moz-tab-size:4;will-change:transform;transform:translate3d(0,0,0);line-break:auto;hyphens:none;-webkit-hyphens:none}
+/* ── Editor: invisible textarea + visible overlay div ────────
+   Both elements must have *identical* text metrics (font, size, line-height,
+   padding, content width, wrapping) so the textarea's caret lands exactly on
+   the overlay's letters. Mobile gotchas baked in here:
+   1. Scroll sync uses transform on the overlay (see #_syncHL in JS), not
+      hl.scrollTop = ed.scrollTop. The latter is sub-pixel-lossy at fractional
+      dpr (e.g. Android Chrome) and produces word-level drift in long docs.
+   2. Textarea scrollbar gutter is removed (scrollbar-width:none + the
+      ::-webkit-scrollbar rule) so its content width matches the div's, which
+      keeps wrap points identical on long lines.
+   3. line-height is rounded to integer px at apply-time (applySettings) so
+      both elements snap to the same line box.
+   4. Font stack avoids the generic `monospace` keyword as the primary because
+      Chromium resolves it differently inside form controls vs blocks. */
+#editor-highlight{position:absolute;left:0;right:0;top:0;padding:32px 64px;font-family:ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace;font-size:18px;line-height:1.8;white-space:pre-wrap;overflow-wrap:break-word;pointer-events:none;border:none;tab-size:4;-moz-tab-size:4;-webkit-text-size-adjust:100%;text-size-adjust:100%;will-change:transform;transform:translateZ(0)}
 #editor-highlight .cm{color:var(--cm);opacity:1;filter:none}
-#editor{position:absolute;inset:0;width:100%;height:100%;resize:none;outline:none;padding:32px 64px;border:0;font-family:ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace,monospace;font-size:18px;line-height:1.8;color:transparent;caret-color:var(--acc);background:transparent;scrollbar-width:none;-webkit-text-fill-color:transparent;-webkit-appearance:none;appearance:none;border-radius:0;letter-spacing:0;word-spacing:normal;font-kerning:none;font-variant-ligatures:none;font-feature-settings:normal;-webkit-text-size-adjust:100%;text-size-adjust:100%;tab-size:4;-moz-tab-size:4;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;vertical-align:top;line-break:auto;hyphens:none;-webkit-hyphens:none}
-#editor::-webkit-scrollbar{width:0;height:0;display:none}
+#editor{position:absolute;inset:0;width:100%;height:100%;resize:none;outline:none;padding:32px 64px;border:0;font-family:ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace;font-size:18px;line-height:1.8;white-space:pre-wrap;overflow-wrap:break-word;tab-size:4;-moz-tab-size:4;color:transparent;-webkit-text-fill-color:transparent;caret-color:var(--acc);background:transparent;scrollbar-width:none;-webkit-text-size-adjust:100%;text-size-adjust:100%;-webkit-appearance:none;appearance:none;border-radius:0}
+#editor::-webkit-scrollbar{display:none}
 #editor::placeholder{-webkit-text-fill-color:color-mix(in srgb,var(--text) 40%,transparent)}
 
 #conflict-banner{padding:6px 12px;font-size:10px;font-family:inherit;text-transform:uppercase;letter-spacing:.1em;background:color-mix(in srgb,var(--acc2) 8%,transparent);border-bottom:1px solid color-mix(in srgb,var(--acc2) 25%,transparent);color:var(--acc2);display:flex;align-items:center;gap:8px;flex-shrink:0}
@@ -149,10 +161,11 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
 .pane-bar .pane-close:hover{color:var(--acc)}
 .pane-bar .pane-label{color:color-mix(in srgb,var(--text) 50%,transparent);text-transform:uppercase;letter-spacing:.1em}
 .pane .editor-wrap-r{position:relative;flex:1;overflow:hidden}
-.pane .editor-hl-r{position:absolute;left:0;right:0;top:0;padding:16px 32px;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;pointer-events:none;border:none;letter-spacing:0;word-spacing:normal;font-kerning:none;font-variant-ligatures:none;font-feature-settings:normal;-webkit-text-size-adjust:100%;text-size-adjust:100%;tab-size:4;-moz-tab-size:4;will-change:transform;transform:translate3d(0,0,0);line-break:auto;hyphens:none;-webkit-hyphens:none}
+/* Right-pane editor pair: same architecture as #editor / #editor-highlight above. */
+.pane .editor-hl-r{position:absolute;left:0;right:0;top:0;padding:16px 32px;white-space:pre-wrap;overflow-wrap:break-word;pointer-events:none;border:none;tab-size:4;-moz-tab-size:4;-webkit-text-size-adjust:100%;text-size-adjust:100%;will-change:transform;transform:translateZ(0)}
 .pane .editor-hl-r .cm{color:var(--cm);opacity:1;filter:none}
-.pane .editor-r{position:absolute;inset:0;width:100%;height:100%;resize:none;outline:none;padding:16px 32px;border:0;color:transparent;caret-color:var(--acc);background:transparent;-webkit-text-fill-color:transparent;-webkit-appearance:none;appearance:none;border-radius:0;letter-spacing:0;word-spacing:normal;font-kerning:none;font-variant-ligatures:none;font-feature-settings:normal;-webkit-text-size-adjust:100%;text-size-adjust:100%;tab-size:4;-moz-tab-size:4;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;scrollbar-width:none;line-break:auto;hyphens:none;-webkit-hyphens:none;vertical-align:top}
-.pane .editor-r::-webkit-scrollbar{width:0;height:0;display:none}
+.pane .editor-r{position:absolute;inset:0;width:100%;height:100%;resize:none;outline:none;padding:16px 32px;border:0;white-space:pre-wrap;overflow-wrap:break-word;tab-size:4;-moz-tab-size:4;color:transparent;-webkit-text-fill-color:transparent;caret-color:var(--acc);background:transparent;scrollbar-width:none;-webkit-text-size-adjust:100%;text-size-adjust:100%;-webkit-appearance:none;appearance:none;border-radius:0}
+.pane .editor-r::-webkit-scrollbar{display:none}
 .pane .editor-r[readonly]{caret-color:transparent}
 /* ── Mobile backdrop ───────────────────────────────────── */
 #sb-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9}
@@ -212,7 +225,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
 <div id="sidebar">
   <div class="sb-header">
     <h1 class="glitch" onclick="W.oblique()" style="cursor:pointer" title="Need inspiration?">WRITER<span style="color:var(--acc)">_</span></h1>
-    <p>// neural_draft_v2.3</p>
+    <p>// neural_draft_v2.4</p>
   </div>
   <div class="sb-actions">
     <button class="btn btn-cyan" style="flex:1" onclick="W.createDoc()">+ Doc</button>
@@ -368,17 +381,14 @@ W.applySettings = () => {
   r.setProperty('--acc', s.accentColor || '#ff2a6d');
   r.setProperty('--acc2', s.accent2Color || '#f9f002');
   r.setProperty('--cm', s.commentColor || '#555555');
-  // Font stack: avoid the generic `monospace` keyword as the primary, because
-  // Chrome (esp. Android) resolves it differently inside <textarea> vs <div>,
-  // producing different ascent/descent → cursor drifts vertically per line.
-  // Stack uses concrete names that exist on each platform; ends with the
-  // doubled-monospace trick so the final fallback ignores the UA's form-control
-  // default and uses the user-agent's *CSS* monospace instead.
+  // Font stack uses concrete family names rather than relying on the generic
+  // `monospace` keyword as the primary — Chromium resolves that keyword
+  // differently inside form controls vs blocks, producing cursor drift.
   const ff = s.fontFamily === 'serif'
     ? '"Iowan Old Style","Apple Garamond",Baskerville,Georgia,"Times New Roman",serif'
     : s.fontFamily === 'sans'
       ? '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif'
-      : 'ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace,monospace';
+      : 'ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace';
   // Use integer px line-height so textarea + overlay div agree on every line box
   // (mobile browsers, esp. Android Chrome, round line-box heights differently in
   // textareas vs divs when given a unitless multiplier — causes cursor drift.)
@@ -1066,7 +1076,7 @@ W.rpRender = (content, readonly) => {
     ? '"Iowan Old Style","Apple Garamond",Baskerville,Georgia,"Times New Roman",serif'
     : s.fontFamily === 'sans'
       ? '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif'
-      : 'ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace,monospace';
+      : 'ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace';
   const lhPx = Math.round(parseFloat(s.fontSize) * parseFloat(s.lineSpacing)) + 'px';
   ed.value = content;
   ed.readOnly = readonly;
@@ -1106,6 +1116,7 @@ document.getElementById('rp-editor').addEventListener('input', () => {
     }, 1000);
   }
 });
+// Right-pane scroll sync — see comment on #_syncHL above for why this uses transform.
 (() => {
   const ed = document.getElementById('rp-editor');
   const hl = document.getElementById('rp-highlight');
