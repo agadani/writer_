@@ -72,9 +72,12 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
 #topbar .shortcuts span{cursor:pointer;padding:2px 4px;border-radius:2px;transition:color .15s,background .15s}
 #topbar .shortcuts span:hover{color:var(--text);background:color-mix(in srgb,var(--text) 10%,transparent)}
 #editor-wrap{position:relative;flex:1;overflow:hidden}
-#editor-highlight{position:absolute;inset:0;padding:32px 64px;font-family:'Courier New',monospace;font-size:18px;line-height:1.8;white-space:pre-wrap;word-wrap:break-word;pointer-events:none;overflow-y:auto;border:none}
+/* Highlight overlay: laid out at full document height, translated to follow scroll.
+   Transform-based sync is sub-pixel accurate; assigning scrollTop is not. */
+#editor-highlight{position:absolute;left:0;right:0;top:0;padding:32px 64px;font-family:ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace,monospace;font-size:18px;line-height:1.8;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;pointer-events:none;border:none;letter-spacing:0;word-spacing:normal;font-kerning:none;font-variant-ligatures:none;font-feature-settings:normal;-webkit-text-size-adjust:100%;text-size-adjust:100%;tab-size:4;-moz-tab-size:4;will-change:transform;transform:translate3d(0,0,0);line-break:auto;hyphens:none;-webkit-hyphens:none}
 #editor-highlight .cm{color:var(--cm);opacity:1;filter:none}
-#editor{position:absolute;inset:0;width:100%;height:100%;resize:none;outline:none;padding:32px 64px;border:none;font-family:'Courier New',monospace;font-size:18px;line-height:1.8;color:transparent;caret-color:var(--acc);background:transparent;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--text) 25%,transparent) transparent;-webkit-text-fill-color:transparent}
+#editor{position:absolute;inset:0;width:100%;height:100%;resize:none;outline:none;padding:32px 64px;border:0;font-family:ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace,monospace;font-size:18px;line-height:1.8;color:transparent;caret-color:var(--acc);background:transparent;scrollbar-width:none;-webkit-text-fill-color:transparent;-webkit-appearance:none;appearance:none;border-radius:0;letter-spacing:0;word-spacing:normal;font-kerning:none;font-variant-ligatures:none;font-feature-settings:normal;-webkit-text-size-adjust:100%;text-size-adjust:100%;tab-size:4;-moz-tab-size:4;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;vertical-align:top;line-break:auto;hyphens:none;-webkit-hyphens:none}
+#editor::-webkit-scrollbar{width:0;height:0;display:none}
 #editor::placeholder{-webkit-text-fill-color:color-mix(in srgb,var(--text) 40%,transparent)}
 
 #conflict-banner{padding:6px 12px;font-size:10px;font-family:inherit;text-transform:uppercase;letter-spacing:.1em;background:color-mix(in srgb,var(--acc2) 8%,transparent);border-bottom:1px solid color-mix(in srgb,var(--acc2) 25%,transparent);color:var(--acc2);display:flex;align-items:center;gap:8px;flex-shrink:0}
@@ -146,9 +149,10 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
 .pane-bar .pane-close:hover{color:var(--acc)}
 .pane-bar .pane-label{color:color-mix(in srgb,var(--text) 50%,transparent);text-transform:uppercase;letter-spacing:.1em}
 .pane .editor-wrap-r{position:relative;flex:1;overflow:hidden}
-.pane .editor-hl-r{position:absolute;inset:0;padding:16px 32px;white-space:pre-wrap;word-wrap:break-word;pointer-events:none;overflow-y:auto;border:none}
+.pane .editor-hl-r{position:absolute;left:0;right:0;top:0;padding:16px 32px;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;pointer-events:none;border:none;letter-spacing:0;word-spacing:normal;font-kerning:none;font-variant-ligatures:none;font-feature-settings:normal;-webkit-text-size-adjust:100%;text-size-adjust:100%;tab-size:4;-moz-tab-size:4;will-change:transform;transform:translate3d(0,0,0);line-break:auto;hyphens:none;-webkit-hyphens:none}
 .pane .editor-hl-r .cm{color:var(--cm);opacity:1;filter:none}
-.pane .editor-r{position:absolute;inset:0;width:100%;height:100%;resize:none;outline:none;padding:16px 32px;border:none;color:transparent;caret-color:var(--acc);background:transparent;-webkit-text-fill-color:transparent}
+.pane .editor-r{position:absolute;inset:0;width:100%;height:100%;resize:none;outline:none;padding:16px 32px;border:0;color:transparent;caret-color:var(--acc);background:transparent;-webkit-text-fill-color:transparent;-webkit-appearance:none;appearance:none;border-radius:0;letter-spacing:0;word-spacing:normal;font-kerning:none;font-variant-ligatures:none;font-feature-settings:normal;-webkit-text-size-adjust:100%;text-size-adjust:100%;tab-size:4;-moz-tab-size:4;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;scrollbar-width:none;line-break:auto;hyphens:none;-webkit-hyphens:none;vertical-align:top}
+.pane .editor-r::-webkit-scrollbar{width:0;height:0;display:none}
 .pane .editor-r[readonly]{caret-color:transparent}
 /* ── Mobile backdrop ───────────────────────────────────── */
 #sb-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9}
@@ -208,7 +212,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
 <div id="sidebar">
   <div class="sb-header">
     <h1 class="glitch" onclick="W.oblique()" style="cursor:pointer" title="Need inspiration?">WRITER<span style="color:var(--acc)">_</span></h1>
-    <p>// neural_draft_v2.1</p>
+    <p>// neural_draft_v2.3</p>
   </div>
   <div class="sb-actions">
     <button class="btn btn-cyan" style="flex:1" onclick="W.createDoc()">+ Doc</button>
@@ -364,16 +368,30 @@ W.applySettings = () => {
   r.setProperty('--acc', s.accentColor || '#ff2a6d');
   r.setProperty('--acc2', s.accent2Color || '#f9f002');
   r.setProperty('--cm', s.commentColor || '#555555');
-  const ff = s.fontFamily === 'serif' ? 'Georgia,"Times New Roman",serif' : s.fontFamily === 'sans' ? '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif' : '"Courier New",monospace';
+  // Font stack: avoid the generic `monospace` keyword as the primary, because
+  // Chrome (esp. Android) resolves it differently inside <textarea> vs <div>,
+  // producing different ascent/descent → cursor drifts vertically per line.
+  // Stack uses concrete names that exist on each platform; ends with the
+  // doubled-monospace trick so the final fallback ignores the UA's form-control
+  // default and uses the user-agent's *CSS* monospace instead.
+  const ff = s.fontFamily === 'serif'
+    ? '"Iowan Old Style","Apple Garamond",Baskerville,Georgia,"Times New Roman",serif'
+    : s.fontFamily === 'sans'
+      ? '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif'
+      : 'ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace,monospace';
+  // Use integer px line-height so textarea + overlay div agree on every line box
+  // (mobile browsers, esp. Android Chrome, round line-box heights differently in
+  // textareas vs divs when given a unitless multiplier — causes cursor drift.)
+  const lhPx = Math.round(parseFloat(s.fontSize) * parseFloat(s.lineSpacing)) + 'px';
   // Textarea (invisible text, visible caret)
   ed.style.fontSize = s.fontSize + 'px';
-  ed.style.lineHeight = s.lineSpacing;
+  ed.style.lineHeight = lhPx;
   ed.style.fontFamily = ff;
   // Highlight overlay (visible text)
   hl.style.backgroundColor = s.paperColor;
   hl.style.color = s.textColor;
   hl.style.fontSize = s.fontSize + 'px';
-  hl.style.lineHeight = s.lineSpacing;
+  hl.style.lineHeight = lhPx;
   hl.style.fontFamily = ff;
   hl.style.textShadow = `0 0 1px ${s.textColor}40`;
   document.getElementById('topbar').style.backgroundColor = s.paperColor;
@@ -387,6 +405,7 @@ W.renderHighlight = () => {
   const ed = document.getElementById('editor');
   const hl = document.getElementById('editor-highlight');
   hl.innerHTML = W.highlightComments(ed.value) + '\n';
+  if (W._syncHL) W._syncHL();
 };
 
 // Shared comment highlighting logic (supports different open/close markers)
@@ -417,13 +436,23 @@ W.highlightComments = text => {
 };
 W.escHL = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-// Sync scroll between textarea and highlight overlay
-document.getElementById('editor').addEventListener('scroll', () => {
+// Sync scroll between textarea and highlight overlay using transform.
+// Assigning hl.scrollTop = ed.scrollTop is sub-pixel-lossy on high-DPI mobile
+// (especially Android Chrome at fractional dpr), causing the highlight to drift
+// from the textarea's actual rendered text after scrolling through a long doc.
+// translate3d is GPU-composited and sub-pixel accurate.
+(() => {
   const ed = document.getElementById('editor');
   const hl = document.getElementById('editor-highlight');
-  hl.scrollTop = ed.scrollTop;
-  hl.scrollLeft = ed.scrollLeft;
-});
+  const sync = () => {
+    hl.style.transform = 'translate3d(' + (-ed.scrollLeft) + 'px,' + (-ed.scrollTop) + 'px,0)';
+  };
+  ed.addEventListener('scroll', sync, {passive:true});
+  // Resync after any layout change that could move the textarea's content origin
+  window.addEventListener('resize', sync);
+  // Expose so renderHighlight can call after updating content
+  W._syncHL = sync;
+})();
 
 // ── Load all data ──────────────────────────────────────────
 W.loadAll = async () => {
@@ -1033,23 +1062,29 @@ W.rpRender = (content, readonly) => {
   const ed = document.getElementById('rp-editor');
   const hl = document.getElementById('rp-highlight');
   const s = W.settings;
-  const ff = s.fontFamily === 'serif' ? 'Georgia,"Times New Roman",serif' : s.fontFamily === 'sans' ? '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif' : '"Courier New",monospace';
+  const ff = s.fontFamily === 'serif'
+    ? '"Iowan Old Style","Apple Garamond",Baskerville,Georgia,"Times New Roman",serif'
+    : s.fontFamily === 'sans'
+      ? '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif'
+      : 'ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace,monospace';
+  const lhPx = Math.round(parseFloat(s.fontSize) * parseFloat(s.lineSpacing)) + 'px';
   ed.value = content;
   ed.readOnly = readonly;
   ed.style.fontFamily = ff;
   ed.style.fontSize = s.fontSize + 'px';
-  ed.style.lineHeight = s.lineSpacing;
+  ed.style.lineHeight = lhPx;
   hl.style.backgroundColor = s.paperColor;
   hl.style.color = s.textColor;
   hl.style.fontFamily = ff;
   hl.style.fontSize = s.fontSize + 'px';
-  hl.style.lineHeight = s.lineSpacing;
+  hl.style.lineHeight = lhPx;
   hl.style.textShadow = `0 0 1px ${s.textColor}40`;
   W.rpRenderHL();
 };
 
 W.rpRenderHL = () => {
   document.getElementById('rp-highlight').innerHTML = W.highlightComments(document.getElementById('rp-editor').value) + '\n';
+  if (W._syncRpHL) W._syncRpHL();
 };
 
 // Right pane input/scroll sync
@@ -1071,9 +1106,16 @@ document.getElementById('rp-editor').addEventListener('input', () => {
     }, 1000);
   }
 });
-document.getElementById('rp-editor').addEventListener('scroll', () => {
-  document.getElementById('rp-highlight').scrollTop = document.getElementById('rp-editor').scrollTop;
-});
+(() => {
+  const ed = document.getElementById('rp-editor');
+  const hl = document.getElementById('rp-highlight');
+  const sync = () => {
+    hl.style.transform = 'translate3d(' + (-ed.scrollLeft) + 'px,' + (-ed.scrollTop) + 'px,0)';
+  };
+  ed.addEventListener('scroll', sync, {passive:true});
+  window.addEventListener('resize', sync);
+  W._syncRpHL = sync;
+})();
 
 // ═══════════════════════════════════════════════════════════
 // SOUNDS (Web Audio API synthesis)

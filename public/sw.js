@@ -1,4 +1,4 @@
-const CACHE = 'writer-v3';
+const CACHE = 'writer-v9';
 const PRECACHE = ['/', '/index.html', '/manifest.json', '/icon.svg'];
 
 self.addEventListener('install', e => {
