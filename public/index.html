@@ -66,7 +66,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
 #topbar{display:flex;align-items:center;padding:4px 12px;border-bottom:1px solid color-mix(in srgb,var(--text) 20%,transparent);font-size:12px;flex-shrink:0}
 #topbar button{background:none;border:none;color:color-mix(in srgb,var(--text) 60%,transparent);cursor:pointer;padding:4px;transition:color .15s}
 #topbar button:hover{color:var(--text)}
-#topbar .doc-title{color:color-mix(in srgb,var(--text) 60%,transparent);font-size:11px;text-transform:uppercase;letter-spacing:.15em;margin-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .15s}
+#topbar .doc-title{color:color-mix(in srgb,var(--text) 60%,transparent);font-size:11px;text-transform:uppercase;letter-spacing:.15em;margin-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .15s;min-width:0;flex-shrink:1}
+#topbar-versions{flex-shrink:0}
 #topbar .doc-title:hover{color:var(--text);text-decoration:underline;text-underline-offset:3px;text-decoration-color:color-mix(in srgb,var(--text) 40%,transparent)}
 #topbar .shortcuts{margin-left:auto;font-size:10px;color:color-mix(in srgb,var(--text) 55%,transparent);text-transform:uppercase;letter-spacing:.1em}
 #topbar .shortcuts span{cursor:pointer;padding:2px 4px;border-radius:2px;transition:color .15s,background .15s}
@@ -225,7 +226,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
 <div id="sidebar">
   <div class="sb-header">
     <h1 class="glitch" onclick="W.oblique()" style="cursor:pointer" title="Need inspiration?">WRITER<span style="color:var(--acc)">_</span></h1>
-    <p>// neural_draft_v2.4</p>
+    <p>// neural_draft_v2.6</p>
   </div>
   <div class="sb-actions">
     <button class="btn btn-cyan" style="flex:1" onclick="W.createDoc()">+ Doc</button>
@@ -246,6 +247,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
   <div id="topbar">
     <button onclick="W.toggleSidebar()" title="Ctrl+B"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="3" width="14" height="2"/><rect x="1" y="7" width="10" height="2"/><rect x="1" y="11" width="14" height="2"/></svg></button>
     <span class="doc-title" id="topbar-title" onclick="W.startRenameInline()" title="Click to rename" style="cursor:pointer"></span>
+    <span id="topbar-versions" onclick="W.openModal('revisions')" title="Version history" style="margin-left:auto;cursor:pointer;font-size:10px;color:color-mix(in srgb,var(--text) 55%,transparent);text-transform:uppercase;letter-spacing:.1em;padding:2px 6px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='color-mix(in srgb,var(--text) 55%,transparent)'">&gt; versions</span>
     <span class="shortcuts"><span onclick="W.toggleSidebar()" title="Toggle sidebar (Ctrl+B)">^B:panel</span> // <span onclick="W.createDoc()" title="New document (Ctrl+N)">^N:new</span> // <span onclick="W.saveDoc()" title="Save (Ctrl+S)">^S:save</span> // <span onclick="W.toggleSplit()" title="Split view (Ctrl+\\)">^\\:split</span></span>
 
   </div>
@@ -326,7 +328,8 @@ W.collapsedFolders = new Set();
 W.dragDocId = null;
 
 const DEFAULTS = {theme:'cyberpunk',fontFamily:'mono',fontSize:'18',lineSpacing:'1.8',
-  paperColor:'#0a0a12',textColor:'#05d9e8',soundEnabled:'false',soundType:'mechanical',hemingwayMode:'false',commentOpen:'%%',commentClose:'%%',commentColor:'#555555'};
+  paperColor:'#0a0a12',textColor:'#05d9e8',soundEnabled:'false',soundType:'mechanical',hemingwayMode:'false',commentOpen:'%%',commentClose:'%%',commentColor:'#555555',
+  revisionDepth:'100'};  // per-doc cap on auto-saved revisions; named versions always kept; 0 = unlimited
 
 // ── IndexedDB ──────────────────────────────────────────────
 W.db = null;
@@ -362,6 +365,38 @@ W.dbIdx = (store, idx, key) => new Promise((r,j) => { const tx = W.db.transactio
 W.wc = s => { const t = s.trim(); return t ? t.split(/\s+/).length : 0; };
 W.cc = s => s.length;
 W.now = () => Date.now();
+
+// ── Revision GC ────────────────────────────────────────────
+// Keep at most settings.revisionDepth auto-revisions per doc (0 = unlimited).
+// Named/saved versions (rev.name set) are always kept regardless of cap.
+W.gcRevisionsFor = async docId => {
+  const cap = parseInt(W.settings.revisionDepth, 10);
+  if (!cap || cap < 1) return 0;
+  const revs = W.revisions.filter(r => r.documentId === docId).sort((a,b) => b.createdAt - a.createdAt);
+  const unnamed = revs.filter(r => !r.name);
+  if (unnamed.length <= cap) return 0;
+  const toDelete = unnamed.slice(cap);
+  for (const r of toDelete) await W.dbDel('revisions', r.id);
+  const deletedIds = new Set(toDelete.map(r => r.id));
+  W.revisions = W.revisions.filter(r => !deletedIds.has(r.id));
+  return toDelete.length;
+};
+W.gcRevisionsAll = async () => {
+  const cap = parseInt(W.settings.revisionDepth, 10);
+  if (!cap || cap < 1) return 0;
+  let total = 0;
+  const seen = new Set();
+  for (const r of W.revisions) seen.add(r.documentId);
+  for (const docId of seen) total += await W.gcRevisionsFor(docId);
+  return total;
+};
+// How many unnamed revisions over cap exist for the current doc (for UI hint).
+W.gcPendingFor = docId => {
+  const cap = parseInt(W.settings.revisionDepth, 10);
+  if (!cap || cap < 1) return 0;
+  const unnamed = W.revisions.filter(r => r.documentId === docId && !r.name);
+  return Math.max(0, unnamed.length - cap);
+};
 
 // ── Settings ───────────────────────────────────────────────
 W.loadSettings = async () => {
@@ -825,10 +860,14 @@ document.getElementById('editor').addEventListener('input', () => {
   clearTimeout(W.saveTimer);
   W.saveTimer = setTimeout(W.saveDoc, 1000);
   clearTimeout(W.revTimer);
-  W.revTimer = setTimeout(() => {
+  W.revTimer = setTimeout(async () => {
     const doc = W.docs.find(d => d.id === W.currentId);
+    if (!doc) return;
     const content = document.getElementById('editor').value;
-    if (doc) W.dbPut('revisions', {id:W.uid(),documentId:doc.id,content,wordCount:W.wc(content),createdAt:W.now()});
+    const rev = {id:W.uid(),documentId:doc.id,content,wordCount:W.wc(content),createdAt:W.now()};
+    await W.dbPut('revisions', rev);
+    W.revisions.push(rev);
+    await W.gcRevisionsFor(doc.id);
   }, 300000);
 });
 document.getElementById('editor').addEventListener('keydown', e => {
@@ -836,7 +875,16 @@ document.getElementById('editor').addEventListener('keydown', e => {
   if (s.hemingwayMode==='true' && (e.key==='Backspace'||e.key==='Delete')) { e.preventDefault(); return; }
   // Desktop: play sounds from keydown (works because physical keyboard events are user gestures)
   if (!W.isMobile() && s.soundEnabled==='true') { if (e.key==='Enter') W.playReturn(s.soundType); else if (e.key.length===1) W.playKeystroke(s.soundType); }
-  if ((e.ctrlKey||e.metaKey) && e.key==='s') { e.preventDefault(); W.saveDoc(); const doc = W.docs.find(d=>d.id===W.currentId); if(doc) W.dbPut('revisions',{id:W.uid(),documentId:doc.id,content:document.getElementById('editor').value,wordCount:W.wc(document.getElementById('editor').value),createdAt:W.now()}); }
+  if ((e.ctrlKey||e.metaKey) && e.key==='s') {
+    e.preventDefault(); W.saveDoc();
+    const doc = W.docs.find(d=>d.id===W.currentId);
+    if (doc) {
+      const content = document.getElementById('editor').value;
+      const rev = {id:W.uid(),documentId:doc.id,content,wordCount:W.wc(content),createdAt:W.now()};
+      W.dbPut('revisions', rev).then(() => W.gcRevisionsFor(doc.id));
+      W.revisions.push(rev);
+    }
+  }
 });
 // Mobile: play sounds from input event (virtual keyboard keydown isn't a user gesture on Android)
 document.getElementById('editor').addEventListener('input', e => {
@@ -1239,6 +1287,7 @@ W.modalHTML.settings = () => {
       <div class="field"><label style="cursor:pointer"><input type="checkbox" ${s.soundEnabled==='true'?'checked':''} onchange="W.setSetting('soundEnabled',String(this.checked));W.openModal('settings')"> audio_feedback</label></div>
       ${s.soundEnabled==='true'?`<div class="field"><select onchange="W.setSetting('soundType',this.value)"><option value="mechanical" ${s.soundType==='mechanical'?'selected':''}>mechanical_keys</option><option value="electric" ${s.soundType==='electric'?'selected':''}>electric_keys</option><option value="laser" ${s.soundType==='laser'?'selected':''}>space_invader_laser</option><option value="sandstorm" ${s.soundType==='sandstorm'?'selected':''}>darude_sandstorm</option><option value="birdsong" ${s.soundType==='birdsong'?'selected':''}>birdsong</option></select></div>`:''}
       <div class="field"><label style="cursor:pointer;color:color-mix(in srgb,var(--acc) 80%,transparent)"><input type="checkbox" ${s.hemingwayMode==='true'?'checked':''} onchange="W.setSetting('hemingwayMode',String(this.checked))"> hemingway_protocol</label><div style="font-size:10px;color:color-mix(in srgb,var(--acc) 50%,transparent);margin-top:4px;margin-left:20px">// disables delete. write forward only.</div></div>
+      <div class="field"><label>revision_history_depth: <span style="color:var(--acc2)">${(parseInt(s.revisionDepth,10)||0) || 'unlimited'}</span></label><input type="range" min="0" max="500" step="10" value="${parseInt(s.revisionDepth,10)||0}" oninput="W.setSetting('revisionDepth',this.value);this.previousElementSibling.querySelector('span').textContent=(parseInt(this.value,10)||0)||'unlimited'"><div style="font-size:10px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-top:4px">// auto-saved versions per doc to keep. named/saved versions are never deleted. 0 = unlimited.</div></div>
       <div class="field"><label>comment_markers</label><div style="display:flex;gap:8px"><div style="flex:1"><div style="font-size:9px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-bottom:2px">open</div><input type="text" value="${W.esc(s.commentOpen||'%%')}" placeholder="%%" onchange="W.setSetting('commentOpen',this.value);W.renderHighlight()"></div><div style="flex:1"><div style="font-size:9px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-bottom:2px">close</div><input type="text" value="${W.esc(s.commentClose||'%%')}" placeholder="%%" onchange="W.setSetting('commentClose',this.value);W.renderHighlight()"></div></div><div style="font-size:10px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-top:4px">// text between these markers is greyed out</div></div>
 
     </div></div></div>`;
@@ -1785,14 +1834,25 @@ W.modalHTML.revisions = () => {
     return `<div class="rev-item" onclick="W.showRev(${i})" id="rev-${i}"${named}>${label}${d.toLocaleDateString()} ${d.toLocaleTimeString()}<div style="font-size:9px;color:color-mix(in srgb,var(--text) 50%,transparent);margin-top:2px">${r.wordCount}w</div></div>`;
   }).join('') : '<div style="padding:16px;font-size:11px;color:color-mix(in srgb,var(--text) 50%,transparent)">// no snapshots found<br>// click save_version in the status bar</div>';
   W._revSelected = -1;
+  const pending = W.gcPendingFor(W.currentId);
+  const cap = parseInt(W.settings.revisionDepth,10) || 0;
+  const gcBtnStyle = 'margin-left:auto;font-size:9px;padding:4px 10px' + (pending ? '' : ';opacity:.4;cursor:not-allowed');
+  const gcBar = cap ? `<div style="padding:6px 12px;font-size:10px;color:color-mix(in srgb,var(--text) 55%,transparent);border-bottom:1px solid color-mix(in srgb,var(--text) 15%,transparent);display:flex;align-items:center;gap:8px">cap: ${cap}/doc${pending ? ` &middot; <span style="color:var(--acc2)">${pending} over</span>` : ''}<button class="btn btn-yellow" style="${gcBtnStyle}"${pending ? '' : ' disabled'} onclick="W.gcRevisionsForCurrent()">&gt; clean_up_now</button></div>` : '';
   return `<div class="modal-bg" onclick="if(event.target===this)W.closeModal()"><div class="modal modal-lg" style="display:flex;flex-direction:column;max-height:80vh">
     <div class="modal-head"><h2 style="color:var(--text)">// version_history</h2><button class="close" onclick="W.closeModal()">[x]</button></div>
+    ${gcBar}
     <div style="display:flex;flex:1;overflow:hidden">
       <div class="rev-list">${items}</div>
       <div id="rev-preview" class="rev-preview" style="flex:1;display:flex;flex-direction:column">
         <div style="flex:1;display:flex;align-items:center;justify-content:center;color:color-mix(in srgb,var(--text) 40%,transparent);font-size:12px">// select a version to preview</div>
       </div>
     </div></div></div>`;
+};
+W.gcRevisionsForCurrent = async () => {
+  if (!W.currentId) return;
+  const n = await W.gcRevisionsFor(W.currentId);
+  W.openModal('revisions');
+  if (n) console.log('[gc] removed', n, 'revisions');
 };
 
 W._revs = () => W.revisions.filter(r => r.documentId === W.currentId).sort((a,b) => b.createdAt - a.createdAt);
@@ -2507,7 +2567,9 @@ W.mergeFromCloud = async (data, statusEl) => {
       if (cd.updatedAt > local.updatedAt) {
         // Cloud is newer — save local as a revision before overwriting
         if (local.content && local.content !== cd.content) {
-          await W.dbPut('revisions', {id:W.uid(),documentId:local.id,content:local.content,wordCount:W.wc(local.content),createdAt:W.now(),name:'pre-sync backup'});
+          const rev = {id:W.uid(),documentId:local.id,content:local.content,wordCount:W.wc(local.content),createdAt:W.now(),name:'pre-sync backup'};
+          await W.dbPut('revisions', rev);
+          W.revisions.push(rev);
           conflicts.push(local.title);
         }
         local.title = cd.title;
@@ -2692,6 +2754,8 @@ W.localRestore = () => {
   await W.loadAll();
   W.applySettings();
   await W.handleOAuthReturn();
+  // Sweep over-cap revisions in the background (non-blocking).
+  setTimeout(() => W.gcRevisionsAll().catch(e => console.warn('[gc] failed', e)), 2000);
   if (W.docs.length) {
     W.selectDoc(W.docs[0].id);
   } else {
