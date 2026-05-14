@@ -1,0 +1,31 @@
+README.md
+  fefc735f624100f5 29-36
+public/test.html
+  fefc735f624100f5 1-269
+build.js
+  fefc735f624100f5 1-51
+package.json
+  fefc735f624100f5 7-8
+.gitignore
+  fefc735f624100f5 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "85d6d0e66decb0d7072bbc8abedb35a489f98587",
+  "prompts": {
+    "fefc735f624100f5": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1dc8cda44ffelDaagscJ3z4QiN",
+        "model": "cloudflare-workers-ai/@cf/moonshotai/kimi-k2.6"
+      },
+      "human_author": "avani",
+      "messages": [],
+      "total_additions": 331,
+      "total_deletions": 1,
+      "accepted_lines": 331,
+      "overriden_lines": 0
+    }
+  }
+}
