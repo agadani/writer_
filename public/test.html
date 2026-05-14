@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>writer_ // editor test harness</title>
+<style>
+/* ── Test harness for the editor alignment / scroll-sync architecture.
+   Keep the #editor / #editor-highlight rules below in sync with the
+   equivalents in index.html (search for "Editor: invisible textarea").
+   This page exists so the cursor-alignment bug can be reproduced and
+   measured on desktop instead of needing a real mobile device. */
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a12;--text:#05d9e8;--acc:#ff2a6d;--acc2:#f9f002;--cm:rgba(128,128,128,.5)}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:#e0e0e0;font-family:ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace}
+#app{display:flex;height:100%}
+#panel{width:320px;min-width:320px;background:#000;border-right:1px solid color-mix(in srgb,var(--text) 25%,transparent);padding:14px;overflow-y:auto;font-size:11px;line-height:1.55}
+#panel h1{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--acc);margin-bottom:4px}
+#panel .sub{font-size:9px;color:color-mix(in srgb,var(--text) 50%,transparent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:14px}
+#panel h2{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--acc2);margin:14px 0 6px}
+#panel button{display:block;width:100%;background:none;border:1px solid color-mix(in srgb,var(--text) 35%,transparent);color:var(--text);font-family:inherit;font-size:11px;padding:6px 10px;margin-bottom:4px;cursor:pointer;text-align:left;text-transform:uppercase;letter-spacing:.05em;transition:all .15s}
+#panel button:hover{background:color-mix(in srgb,var(--text) 10%,transparent);border-color:var(--text)}
+#panel button.danger{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 40%,transparent)}
+#panel button.danger:hover{background:color-mix(in srgb,var(--acc) 10%,transparent)}
+#panel label{display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:color-mix(in srgb,var(--text) 65%,transparent);margin:8px 0 3px}
+#panel input,#panel select{width:100%;background:#0a0a12;border:1px solid color-mix(in srgb,var(--text) 30%,transparent);color:var(--text);font-family:inherit;font-size:11px;padding:4px 6px;outline:none}
+#report{white-space:pre;font-size:11px;color:#0f0;background:#000;border:1px solid #0f0;padding:8px;margin-top:8px;max-height:40vh;overflow:auto;user-select:text}
+#stage{flex:1;display:flex;align-items:center;justify-content:center;background:#1a1a2e;overflow:auto;padding:12px}
+#frame{position:relative;background:var(--bg);border:1px solid color-mix(in srgb,var(--text) 30%,transparent);display:flex;flex-direction:column;flex-shrink:0}
+#stats{padding:4px 10px;font-size:9px;color:color-mix(in srgb,var(--text) 55%,transparent);border-bottom:1px solid color-mix(in srgb,var(--text) 20%,transparent);display:flex;gap:12px;letter-spacing:.1em;text-transform:uppercase}
+
+/* ─── Copied from index.html (kept in sync by hand) ──────────── */
+#editor-wrap{position:relative;flex:1;overflow:hidden}
+#editor-highlight{position:absolute;left:0;right:0;top:0;padding:32px 64px;font-family:ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace;font-size:18px;line-height:1.8;white-space:pre-wrap;overflow-wrap:break-word;pointer-events:none;border:none;tab-size:4;-moz-tab-size:4;-webkit-text-size-adjust:100%;text-size-adjust:100%;will-change:transform;transform:translateZ(0);color:var(--text)}
+#editor{position:absolute;inset:0;width:100%;height:100%;resize:none;outline:none;padding:32px 64px;border:0;font-family:ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace;font-size:18px;line-height:1.8;white-space:pre-wrap;overflow-wrap:break-word;tab-size:4;-moz-tab-size:4;color:transparent;-webkit-text-fill-color:transparent;caret-color:var(--acc);background:transparent;scrollbar-width:none;-webkit-text-size-adjust:100%;text-size-adjust:100%;-webkit-appearance:none;appearance:none;border-radius:0}
+#editor::-webkit-scrollbar{display:none}
+
+/* Visualise textarea text in red so drift is visible to the eye. */
+body.show-ta #editor{color:rgba(255,80,80,.85);-webkit-text-fill-color:rgba(255,80,80,.85)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="panel">
+    <h1>editor_test_</h1>
+    <div class="sub">// alignment + scroll harness</div>
+
+    <h2>frame</h2>
+    <label>simulated width (px)</label>
+    <input type="number" id="cfg-w" value="411" min="200" max="2000" step="1">
+    <label>simulated height (px)</label>
+    <input type="number" id="cfg-h" value="764" min="200" max="2000" step="1">
+    <label>devicePixelRatio (visual scale only)</label>
+    <input type="number" id="cfg-dpr" value="1" min="0.5" max="4" step="0.125">
+    <button onclick="T.applyFrame()">&gt; apply frame</button>
+
+    <h2>content</h2>
+    <label>lines to generate</label>
+    <input type="number" id="cfg-lines" value="200" min="1" max="5000" step="1">
+    <label>wrap behavior</label>
+    <select id="cfg-wrap">
+      <option value="short">short manual-broken lines</option>
+      <option value="long" selected>long paragraphs (wraps visually)</option>
+      <option value="mixed">mix</option>
+    </select>
+    <button onclick="T.fill()">&gt; fill editor</button>
+    <button onclick="T.clear()" class="danger">&gt; clear</button>
+
+    <h2>actions</h2>
+    <button onclick="T.toggleVis()">&gt; toggle red textarea text</button>
+    <button onclick="T.scrollToBottom()">&gt; scroll to bottom</button>
+    <button onclick="T.scrollToTop()">&gt; scroll to top</button>
+    <button onclick="T.measure()">&gt; measure alignment</button>
+
+    <div id="report"></div>
+  </div>
+  <div id="stage">
+    <div id="frame">
+      <div id="stats"></div>
+      <div id="editor-wrap">
+        <div id="editor-highlight"></div>
+        <textarea id="editor" placeholder="// fill editor or type here..." spellcheck="false"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const T = {};
+
+T.applyFrame = () => {
+  const w = parseInt(document.getElementById('cfg-w').value,10) || 411;
+  const h = parseInt(document.getElementById('cfg-h').value,10) || 764;
+  const dpr = parseFloat(document.getElementById('cfg-dpr').value) || 1;
+  const f = document.getElementById('frame');
+  f.style.width = w + 'px';
+  f.style.height = h + 'px';
+  // Visual scale only — does NOT change devicePixelRatio for the browser,
+  // but makes a small frame more readable when zoomed.
+  f.style.transform = `scale(${dpr})`;
+  f.style.transformOrigin = 'center center';
+  T.updateStats();
+};
+
+T.updateStats = () => {
+  const ed = document.getElementById('editor');
+  const hl = document.getElementById('editor-highlight');
+  const edCS = getComputedStyle(ed);
+  document.getElementById('stats').textContent =
+    `dpr:${devicePixelRatio} · vw:${innerWidth} · lh:${edCS.lineHeight} · ed.scrollH:${ed.scrollHeight} · hl.scrollH:${hl.scrollHeight}`;
+};
+
+const LOREM_WORDS = ('lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor '
+  + 'incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud '
+  + 'exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat duis aute '
+  + 'irure reprehenderit voluptate velit esse cillum fugiat nulla pariatur').split(' ');
+
+T._line = (n, len) => {
+  // Deterministic so re-fills produce same content (helps repro bugs).
+  let out = String(n).padStart(3,'0') + ' ';
+  let i = (n * 7) % LOREM_WORDS.length;
+  while (out.length < len) {
+    out += LOREM_WORDS[i % LOREM_WORDS.length] + ' ';
+    i++;
+  }
+  return out.trim();
+};
+
+T.fill = () => {
+  const n = Math.max(1, parseInt(document.getElementById('cfg-lines').value,10) || 200);
+  const mode = document.getElementById('cfg-wrap').value;
+  const lines = [];
+  for (let i = 1; i <= n; i++) {
+    let len;
+    if (mode === 'short') len = 30 + ((i*3) % 20);
+    else if (mode === 'long') len = 200 + ((i*11) % 80);
+    else len = (i % 4 === 0) ? 250 : 40 + ((i*5) % 30);
+    lines.push(T._line(i, len));
+  }
+  document.getElementById('editor').value = lines.join('\n');
+  T.render();
+  T.updateStats();
+};
+
+T.clear = () => {
+  document.getElementById('editor').value = '';
+  T.render();
+  T.updateStats();
+};
+
+T.render = () => {
+  const ed = document.getElementById('editor');
+  const hl = document.getElementById('editor-highlight');
+  // No comment-highlighting needed for the harness — plain text suffices.
+  hl.textContent = ed.value + '\n';
+  T._sync();
+};
+
+T._sync = () => {
+  const ed = document.getElementById('editor');
+  const hl = document.getElementById('editor-highlight');
+  hl.style.transform = 'translate3d(' + (-ed.scrollLeft) + 'px,' + (-ed.scrollTop) + 'px,0)';
+};
+
+T.toggleVis = () => document.body.classList.toggle('show-ta');
+
+T.scrollToBottom = () => {
+  const ed = document.getElementById('editor');
+  ed.scrollTop = ed.scrollHeight;
+};
+T.scrollToTop = () => { document.getElementById('editor').scrollTop = 0; };
+
+T.measure = () => {
+  const ed = document.getElementById('editor');
+  const hl = document.getElementById('editor-highlight');
+  const edCS = getComputedStyle(ed), hlCS = getComputedStyle(hl);
+  const wrapRect = document.getElementById('editor-wrap').getBoundingClientRect();
+  // Measure first-character Y of each logical line in the highlight overlay
+  // using a Range. Compare against where a textarea mirror predicts the same
+  // line would render — see diagnostic in index.html session for the
+  // approach. Reports a per-line delta plus the linear-fit drift per line.
+  const text = hl.firstChild && hl.firstChild.nodeType === 3 ? hl.firstChild : null;
+  if (!text) { T._report('no text in overlay; fill editor first'); return; }
+  const s = text.nodeValue;
+  const range = document.createRange();
+  const hlYs = [];
+  let pos = 0, lineNum = 0;
+  while (lineNum < 200 && pos < s.length) {
+    range.setStart(text, pos);
+    range.setEnd(text, Math.min(pos+1, s.length));
+    const r = range.getBoundingClientRect();
+    hlYs.push(r.top - wrapRect.top);
+    const next = s.indexOf('\n', pos);
+    if (next === -1) break;
+    pos = next + 1; lineNum++;
+  }
+  // Build a mirror div positioned identically to the textarea so we can
+  // predict where each line would render inside the textarea.
+  const mirror = document.createElement('div');
+  const mirCS = ['boxSizing','width','height','padding','border','fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','wordSpacing','whiteSpace','overflowWrap','wordBreak','tabSize'];
+  const edRect = ed.getBoundingClientRect();
+  mirror.style.position = 'fixed';
+  mirror.style.visibility = 'hidden';
+  mirror.style.left = edRect.left + 'px';
+  mirror.style.top = edRect.top + 'px';
+  mirCS.forEach(p => mirror.style[p] = edCS[p]);
+  mirror.style.overflow = 'hidden';
+  mirror.style.whiteSpace = 'pre-wrap';
+  document.body.appendChild(mirror);
+  const taText = ed.value;
+  const taYs = [];
+  let p2 = 0;
+  for (let i = 0; i < hlYs.length && p2 <= taText.length; i++) {
+    mirror.textContent = taText.slice(0, p2);
+    const span = document.createElement('span');
+    span.textContent = '|';
+    mirror.appendChild(span);
+    const r = span.getBoundingClientRect();
+    taYs.push(r.top - edRect.top - ed.scrollTop);
+    const next = taText.indexOf('\n', p2);
+    if (next === -1) break;
+    p2 = next + 1;
+  }
+  mirror.remove();
+  // Build report
+  let r = '';
+  const fmt = n => (Math.round(n * 100) / 100).toFixed(2);
+  r += 'ALIGNMENT MEASUREMENT\n';
+  r += '─────────────────────\n';
+  r += `viewport: ${innerWidth}×${innerHeight}  dpr:${devicePixelRatio}\n`;
+  r += `lh: ed=${edCS.lineHeight}  hl=${hlCS.lineHeight}\n`;
+  r += `pad: ed=${edCS.paddingTop}/${edCS.paddingLeft}  hl=${hlCS.paddingTop}/${hlCS.paddingLeft}\n`;
+  r += `inner-w: ed=${fmt(ed.clientWidth - parseFloat(edCS.paddingLeft) - parseFloat(edCS.paddingRight))}  ` +
+       `hl=${fmt(hl.clientWidth - parseFloat(hlCS.paddingLeft) - parseFloat(hlCS.paddingRight))}\n`;
+  r += `scrollH: ed=${ed.scrollHeight}  hl=${hl.scrollHeight}\n\n`;
+  r += 'line   textarea-Y    overlay-Y     delta\n';
+  const n = Math.min(hlYs.length, taYs.length);
+  for (let i = 0; i < n; i++) {
+    r += String(i+1).padStart(3) + '   '
+      + fmt(taYs[i]).padStart(9) + '   '
+      + fmt(hlYs[i]).padStart(9) + '   '
+      + fmt(taYs[i] - hlYs[i]).padStart(7) + '\n';
+    if (i >= 9 && i < n - 5) { r += '       ...\n'; i = n - 6; }  // condense middle
+  }
+  if (n >= 2) {
+    const taStep = (taYs[n-1] - taYs[0]) / (n-1);
+    const hlStep = (hlYs[n-1] - hlYs[0]) / (n-1);
+    r += '\nper-line step:\n';
+    r += '  textarea: ' + fmt(taStep) + ' px\n';
+    r += '  overlay : ' + fmt(hlStep) + ' px\n';
+    r += '  diff    : ' + fmt(taStep - hlStep) + ' px/line  '
+      + (Math.abs(taStep - hlStep) < 0.01 ? '✓' : '⚠ drift') + '\n';
+  }
+  T._report(r);
+};
+
+T._report = txt => { document.getElementById('report').textContent = txt; };
+
+// Wire scroll sync (identical to the app's #_syncHL closure)
+document.getElementById('editor').addEventListener('scroll', T._sync, {passive:true});
+document.getElementById('editor').addEventListener('input', T.render);
+window.addEventListener('resize', T._sync);
+
+T.applyFrame();
+T.updateStats();
+setInterval(T.updateStats, 500);
+</script>
+</body>
+</html>

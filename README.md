@@ -26,6 +26,14 @@ See [HISTORY.md](HISTORY.md) for the gory technical details.
 npx wrangler pages dev public
 ```
 
+## Deploying
+
+```
+npm run deploy
+```
+
+This pushes to the bare `writer-kl2.pages.dev` URL.  Note the `--branch production` flag in the script: the Cloudflare Pages project is configured with its "production branch" set to `production`, while this repo's default branch is `main`.  A plain `wrangler pages deploy` *without* the flag silently lands in the Preview environment and the bare URL keeps serving the previous build — easy to miss because the per-deploy hash URLs *do* update.  Either keep the `--branch production` in the deploy script, or change the project's production branch to `main` in the Cloudflare dashboard (Workers & Pages → writer → Settings → Builds & deployments → Production branch).
+
 ## Why?
 
 Wordperfect was the last perfect editor.  This is an homage to what it could look like today.
