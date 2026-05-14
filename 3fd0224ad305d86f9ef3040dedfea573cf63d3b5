@@ -1,0 +1,25 @@
+public/index.html
+  fefc735f624100f5 69-70,229,250,331-332,369-400,863,865,867-870,878-887,1290,1837-1840,1843,1851-1855,2570-2572,2757-2758
+public/sw.js
+  fefc735f624100f5 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "3fd0224ad305d86f9ef3040dedfea573cf63d3b5",
+  "prompts": {
+    "fefc735f624100f5": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1dc8cda44ffelDaagscJ3z4QiN",
+        "model": "cloudflare-workers-ai/@cf/moonshotai/kimi-k2.6"
+      },
+      "human_author": "avani",
+      "messages": [],
+      "total_additions": 72,
+      "total_deletions": 8,
+      "accepted_lines": 72,
+      "overriden_lines": 0
+    }
+  }
+}
