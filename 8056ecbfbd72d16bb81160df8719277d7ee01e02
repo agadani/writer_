@@ -1,0 +1,23 @@
+public/index.html
+  fefc735f624100f5 59-74,108-109,113-123,258,265,267,292-303,375-377,425-461,550-558,562-572,576-577,580,584-587,590-615,617-621,652-780,905-908,1135,1313-1321,1325-1557,1811-1812,3313
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "8056ecbfbd72d16bb81160df8719277d7ee01e02",
+  "prompts": {
+    "fefc735f624100f5": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1dc8cda44ffelDaagscJ3z4QiN",
+        "model": "cloudflare-workers-ai/@cf/moonshotai/kimi-k2.6"
+      },
+      "human_author": "avani",
+      "messages": [],
+      "total_additions": 527,
+      "total_deletions": 22,
+      "accepted_lines": 527,
+      "overriden_lines": 0
+    }
+  }
+}
