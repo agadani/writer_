@@ -255,7 +255,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
 <div id="sidebar">
   <div class="sb-header">
     <h1 class="glitch" onclick="W.oblique()" style="cursor:pointer" title="Need inspiration?">WRITER<span style="color:var(--acc)">_</span></h1>
-    <p>// neural_draft_v2.20</p>
+    <p>// neural_draft_v2.21</p>
   </div>
   <div class="sb-actions">
     <button class="btn btn-cyan" style="flex:1" onclick="W.createDoc()">+ Doc</button>
@@ -745,23 +745,29 @@ W.outlineJump = idx => {
   if (W.isMobile()) W.closeSidebar?.();
 };
 
-// Arrow-key navigation when the outline list has focus.
-document.addEventListener('keydown', e => {
-  if (!W.outlineOpen) return;
-  if (document.activeElement !== document.getElementById('outline-list')) return;
-  if (e.key === 'ArrowDown' || e.key === 'j') { e.preventDefault(); W._olMove(1); }
-  else if (e.key === 'ArrowUp' || e.key === 'k') { e.preventDefault(); W._olMove(-1); }
-  else if (e.key === 'Enter') { e.preventDefault(); W.outlineJump(W._olSelected); }
-  else if (e.key === 'ArrowRight' || e.key === 'l') {
+// Arrow-key navigation handler for the outline list — called from the main
+// keydown listener when the outline-list has focus. Returns true if the
+// event was handled (the main listener uses this to skip its own logic).
+W._olKey = e => {
+  if (!W.outlineOpen) return false;
+  if (document.activeElement !== document.getElementById('outline-list')) return false;
+  if (e.key === 'ArrowDown' || e.key === 'j') { e.preventDefault(); W._olMove(1); return true; }
+  if (e.key === 'ArrowUp' || e.key === 'k') { e.preventDefault(); W._olMove(-1); return true; }
+  if (e.key === 'Enter') { e.preventDefault(); W.outlineJump(W._olSelected); return true; }
+  if (e.key === 'ArrowRight' || e.key === 'l') {
     const headings = W.outlineFor(document.getElementById('editor').value);
     const h = headings[W._olSelected];
     if (h) { W._olCollapsed.delete(h.lineStart); W.renderOutline(); }
-  } else if (e.key === 'ArrowLeft' || e.key === 'h') {
+    return true;
+  }
+  if (e.key === 'ArrowLeft' || e.key === 'h') {
     const headings = W.outlineFor(document.getElementById('editor').value);
     const h = headings[W._olSelected];
     if (h) { W._olCollapsed.add(h.lineStart); W.renderOutline(); }
+    return true;
   }
-});
+  return false;
+};
 W._olMove = delta => {
   const headings = W.outlineFor(document.getElementById('editor').value);
   // Skip over hidden items.
@@ -1306,20 +1312,30 @@ W.closeSidebar = () => {
 };
 
 // ── Keyboard shortcuts ─────────────────────────────────────
+// Single global keydown handler. To add a new shortcut, add a line here
+// (use `mod` for ctrl/cmd) and don't forget e.preventDefault() if you're
+// overriding a browser default.
 document.addEventListener('keydown', e => {
-  if ((e.ctrlKey||e.metaKey) && e.key==='b') { e.preventDefault(); W.toggleSidebar(); }
-  if ((e.ctrlKey||e.metaKey) && e.key==='n') { e.preventDefault(); W.createDoc(); }
-  if ((e.ctrlKey||e.metaKey) && e.key==='\\') { e.preventDefault(); W.toggleSplit(); }
-  if ((e.ctrlKey||e.metaKey) && e.key==='o') { e.preventDefault(); W.toggleOutline(); }
-  if ((e.ctrlKey||e.metaKey) && e.key==='f') { e.preventDefault(); W.openFind?.(); }
-  if ((e.ctrlKey||e.metaKey) && e.key===';') { e.preventDefault(); W.toggleTypewriter?.(); }
+  // First: outline arrow-nav has priority when the outline list is focused.
+  if (W._olKey?.(e)) return;
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key==='b')  { e.preventDefault(); W.toggleSidebar(); return; }
+  if (mod && e.key==='n')  { e.preventDefault(); W.createDoc(); return; }
+  if (mod && e.key==='\\') { e.preventDefault(); W.toggleSplit(); return; }
+  if (mod && e.key==='o')  { e.preventDefault(); W.toggleOutline(); return; }
+  if (mod && e.key==='f')  { e.preventDefault(); W.openFind?.(); return; }
+  if (mod && e.key===';')  { e.preventDefault(); W.toggleTypewriter?.(); return; }
+  if (e.key==='F11' || (mod && e.shiftKey && e.key==='f')) {
+    e.preventDefault();
+    document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    return;
+  }
   if (e.key==='Escape') {
-    if (document.activeElement&&document.activeElement.tagName==='INPUT') return;
+    if (document.activeElement && document.activeElement.tagName==='INPUT') return;
     if (W.findBarOpen) { W.closeFind?.(); return; }
     if (document.getElementById('modal-root').innerHTML) W.closeModal();
     else W.toggleSidebar();
   }
-  if (e.key==='F11'||((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='f')) { e.preventDefault(); document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -1747,171 +1763,395 @@ W.playReturn = type => {
   } catch {}
 };
 
-function skMech(c){const n=c.currentTime,l=c.sampleRate*.04,b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<l;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(l*.1));const s=c.createBufferSource();s.buffer=b;const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=2000+Math.random()*1000;f.Q.value=2;const g=c.createGain();g.gain.setValueAtTime(.15,n);g.gain.exponentialRampToValueAtTime(.001,n+.04);s.connect(f);f.connect(g);g.connect(c.destination);s.start(n);s.stop(n+.05)}
-function skElec(c){const n=c.currentTime,o=c.createOscillator();o.type='square';o.frequency.setValueAtTime(800+Math.random()*400,n);o.frequency.exponentialRampToValueAtTime(200,n+.02);const g=c.createGain();g.gain.setValueAtTime(.06,n);g.gain.exponentialRampToValueAtTime(.001,n+.03);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+.04)}
-function skLaser(c){const n=c.currentTime,dur=.08+Math.random()*.04,sf=900+Math.random()*600;const o=c.createOscillator();o.type='square';o.frequency.setValueAtTime(sf,n);o.frequency.exponentialRampToValueAtTime(80,n+dur);const o2=c.createOscillator();o2.type='sawtooth';o2.frequency.setValueAtTime(sf*1.5,n);o2.frequency.exponentialRampToValueAtTime(40,n+dur*.8);const g=c.createGain();g.gain.setValueAtTime(.09,n);g.gain.exponentialRampToValueAtTime(.001,n+dur);const g2=c.createGain();g2.gain.setValueAtTime(.03,n);g2.gain.exponentialRampToValueAtTime(.001,n+dur*.7);const nl=Math.floor(c.sampleRate*.015),nb=c.createBuffer(1,nl,c.sampleRate),nd=nb.getChannelData(0);for(let i=0;i<nl;i++)nd[i]=(Math.random()*2-1)*Math.exp(-i/(nl*.3));const ns=c.createBufferSource();ns.buffer=nb;const ng=c.createGain();ng.gain.setValueAtTime(.08,n);ng.gain.exponentialRampToValueAtTime(.001,n+.015);const nf=c.createBiquadFilter();nf.type='highpass';nf.frequency.value=3000;o.connect(g);o2.connect(g2);ns.connect(nf);nf.connect(ng);g.connect(c.destination);g2.connect(c.destination);ng.connect(c.destination);o.start(n);o2.start(n);ns.start(n);o.stop(n+dur+.01);o2.stop(n+dur+.01);ns.stop(n+.02)}
+// ── Sound packs ────────────────────────────────────────────
+// Each pack supplies two functions:
+//   skXxx(c)  fires on every typed character
+//   srXxx(c)  fires on Enter / new paragraph
+// All synthesis is Web Audio (no audio files). The pattern within each
+// is: build an envelope (gain node) around one or more sources (oscillator
+// or noise buffer), pipe through filters, connect to destination, start +
+// stop. Constants are mostly time in seconds and frequencies in Hz.
 
-const SSR=[493.88,493.88,493.88,493.88,493.88,493.88,493.88,493.88,659.25,659.25,659.25,659.25,587.33,587.33,587.33,587.33,493.88,493.88,493.88,493.88,493.88,493.88,493.88,493.88,659.25,659.25,659.25,659.25,440,440,440,440,440,440,440,440,493.88,493.88,493.88,493.88];
-let ssIdx=0,ssLast=0;
-function skSand(c){const n=c.currentTime;if(n-ssLast>2)ssIdx=0;ssLast=n;const f=SSR[ssIdx%SSR.length];ssIdx++;const dur=.08;const o=c.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,n);const s=c.createOscillator();s.type='square';s.frequency.setValueAtTime(f/2,n);const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.setValueAtTime(3000,n);fl.frequency.exponentialRampToValueAtTime(600,n+dur);fl.Q.value=8;const g=c.createGain();g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(.12,n+.005);g.gain.setValueAtTime(.12,n+dur*.6);g.gain.exponentialRampToValueAtTime(.001,n+dur);o.connect(fl);s.connect(fl);fl.connect(g);g.connect(c.destination);o.start(n);s.start(n);o.stop(n+dur+.01);s.stop(n+dur+.01)}
-function srMech(c){const n=c.currentTime,l=c.sampleRate*.12,b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<l;i++){const t=i/c.sampleRate;d[i]=(Math.random()*2-1)*Math.exp(-t*20)*.3+Math.sin(2*Math.PI*150*t)*Math.exp(-t*15)*.2}const s=c.createBufferSource();s.buffer=b;const g=c.createGain();g.gain.setValueAtTime(.2,n);g.gain.exponentialRampToValueAtTime(.001,n+.12);s.connect(g);g.connect(c.destination);s.start(n);s.stop(n+.15)}
-function srElec(c){const n=c.currentTime,l=c.sampleRate*.12,b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<l;i++){const t=i/c.sampleRate;d[i]=(Math.random()*2-1)*Math.exp(-t*20)*.3+Math.sin(2*Math.PI*150*t)*Math.exp(-t*15)*.2}const s=c.createBufferSource();s.buffer=b;const g=c.createGain();g.gain.setValueAtTime(.1,n);g.gain.exponentialRampToValueAtTime(.001,n+.12);s.connect(g);g.connect(c.destination);s.start(n);s.stop(n+.15)}
-function srLaser(c){const n=c.currentTime,dur=.2;const o=c.createOscillator();o.type='square';o.frequency.setValueAtTime(1800,n);o.frequency.exponentialRampToValueAtTime(50,n+dur);const o2=c.createOscillator();o2.type='sawtooth';o2.frequency.setValueAtTime(2400,n);o2.frequency.exponentialRampToValueAtTime(30,n+dur*.7);const g=c.createGain();g.gain.setValueAtTime(.12,n);g.gain.exponentialRampToValueAtTime(.001,n+dur);const g2=c.createGain();g2.gain.setValueAtTime(.05,n);g2.gain.exponentialRampToValueAtTime(.001,n+dur*.6);o.connect(g);o2.connect(g2);g.connect(c.destination);g2.connect(c.destination);o.start(n);o2.start(n);o.stop(n+dur+.01);o2.stop(n+dur+.01)}
-function srSand(c){const n=c.currentTime;stab(c,493.88,n,.06);stab(c,659.25,n+.07,.1);ssIdx=0}
-function stab(c,f,t,dur){const o=c.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,t);const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.setValueAtTime(3500,t);fl.frequency.exponentialRampToValueAtTime(500,t+dur);fl.Q.value=10;const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.14,t+.005);g.gain.setValueAtTime(.14,t+dur*.5);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(fl);fl.connect(g);g.connect(c.destination);o.start(t);o.stop(t+dur+.01)}
-const birdNotes=[2200,2600,2400,2800,2100,2500,2700,2300,2900,2000];let bnIdx=0;
-function skBird(c){const n=c.currentTime,base=birdNotes[bnIdx%birdNotes.length]+Math.random()*300-150;bnIdx++;const dur=.06+Math.random()*.03;const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(base,n);o.frequency.exponentialRampToValueAtTime(base*(1.1+Math.random()*.3),n+dur*.4);o.frequency.exponentialRampToValueAtTime(base*.8,n+dur);const g=c.createGain();g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(.1,n+.005);g.gain.setValueAtTime(.1,n+dur*.3);g.gain.exponentialRampToValueAtTime(.001,n+dur);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+dur+.01)}
-function srBird(c){const n=c.currentTime,f1=2400+Math.random()*400,f2=f1*1.25;for(let i=0;i<4;i++){const t=n+i*.045,f=i%2===0?f2:f1;const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.85,t+.04);const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.09,t+.005);g.gain.exponentialRampToValueAtTime(.001,t+.04);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.05)}}
-// ── Typewriter (analog) ──
-// Stroke: low wooden thud (bandpass-filtered noise ~150Hz) + brief metallic
-// typebar ping (~3kHz). Return: bell ding (sine ~1100Hz) + carriage slide.
-function skType(c){const n=c.currentTime,l=c.sampleRate*.07,b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<l;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(l*.15));const s=c.createBufferSource();s.buffer=b;const lf=c.createBiquadFilter();lf.type='bandpass';lf.frequency.value=150+Math.random()*60;lf.Q.value=3;const lg=c.createGain();lg.gain.setValueAtTime(.28,n);lg.gain.exponentialRampToValueAtTime(.001,n+.07);s.connect(lf);lf.connect(lg);lg.connect(c.destination);s.start(n);s.stop(n+.08);const o=c.createOscillator();o.type='triangle';o.frequency.setValueAtTime(2800+Math.random()*400,n);o.frequency.exponentialRampToValueAtTime(1800,n+.025);const og=c.createGain();og.gain.setValueAtTime(.04,n);og.gain.exponentialRampToValueAtTime(.001,n+.025);o.connect(og);og.connect(c.destination);o.start(n);o.stop(n+.03)}
-function srType(c){const n=c.currentTime,o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(1108,n);const og=c.createGain();og.gain.setValueAtTime(0,n);og.gain.linearRampToValueAtTime(.18,n+.005);og.gain.exponentialRampToValueAtTime(.001,n+.35);const o2=c.createOscillator();o2.type='sine';o2.frequency.setValueAtTime(2216,n);const og2=c.createGain();og2.gain.setValueAtTime(0,n);og2.gain.linearRampToValueAtTime(.05,n+.005);og2.gain.exponentialRampToValueAtTime(.001,n+.18);o.connect(og);og.connect(c.destination);o2.connect(og2);og2.connect(c.destination);o.start(n);o2.start(n);o.stop(n+.4);o2.stop(n+.2);const slideT=n+.12,sl=c.sampleRate*.18,sb=c.createBuffer(1,sl,c.sampleRate),sd=sb.getChannelData(0);for(let i=0;i<sl;i++)sd[i]=(Math.random()*2-1)*Math.exp(-i/(sl*.5));const ss=c.createBufferSource();ss.buffer=sb;const sf=c.createBiquadFilter();sf.type='bandpass';sf.frequency.setValueAtTime(800,slideT);sf.frequency.exponentialRampToValueAtTime(300,slideT+.18);sf.Q.value=2;const sg=c.createGain();sg.gain.setValueAtTime(.12,slideT);sg.gain.exponentialRampToValueAtTime(.001,slideT+.18);ss.connect(sf);sf.connect(sg);sg.connect(c.destination);ss.start(slideT);ss.stop(slideT+.2)}
-// ── Rain ──
-// Stroke: a single small raindrop on a hard-ish surface. Two parts: a very
-// short noise pock (the impact) plus a faint pitched ring (the surface's
-// resonance, varying per drop). Both quiet. The point isn't to be heard;
-// it's to feel like a drop just landed somewhere outside.
-// Return: a fatter drop, slightly slower & lower-pitched.
-// One drop. Calm = soft, uniform, quiet. Drops still have minor variation
-// (it'd sound robotic without any) but the range is tight so consecutive
-// drops feel like the same gentle rain, not a mixed scene.
+// ── Mechanical keyboard ──
+// Short noise burst through a high-Q bandpass: the spring/click character.
+function skMech(c){
+  const n=c.currentTime, dur=.04;
+  const l=Math.floor(c.sampleRate*dur);
+  const b=c.createBuffer(1,l,c.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<l;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(l*.1));
+  const s=c.createBufferSource(); s.buffer=b;
+  const f=c.createBiquadFilter(); f.type='bandpass';
+  f.frequency.value=2000+Math.random()*1000; f.Q.value=2;
+  const g=c.createGain(); g.gain.setValueAtTime(.15,n);
+  g.gain.exponentialRampToValueAtTime(.001,n+dur);
+  s.connect(f); f.connect(g); g.connect(c.destination);
+  s.start(n); s.stop(n+dur+.01);
+}
+// Return: longer noise body with a sine sub-bass for the "thunk" of a return.
+function srMech(c){
+  const n=c.currentTime, dur=.12;
+  const l=Math.floor(c.sampleRate*dur);
+  const b=c.createBuffer(1,l,c.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<l;i++){
+    const t=i/c.sampleRate;
+    d[i]=(Math.random()*2-1)*Math.exp(-t*20)*.3 + Math.sin(2*Math.PI*150*t)*Math.exp(-t*15)*.2;
+  }
+  const s=c.createBufferSource(); s.buffer=b;
+  const g=c.createGain(); g.gain.setValueAtTime(.2,n);
+  g.gain.exponentialRampToValueAtTime(.001,n+dur);
+  s.connect(g); g.connect(c.destination);
+  s.start(n); s.stop(n+dur+.03);
+}
+
+// ── Electric keys ──
+// Quick square-wave pitch-drop: synthy, computer-keyboard feel.
+function skElec(c){
+  const n=c.currentTime;
+  const o=c.createOscillator(); o.type='square';
+  o.frequency.setValueAtTime(800+Math.random()*400,n);
+  o.frequency.exponentialRampToValueAtTime(200,n+.02);
+  const g=c.createGain(); g.gain.setValueAtTime(.06,n);
+  g.gain.exponentialRampToValueAtTime(.001,n+.03);
+  o.connect(g); g.connect(c.destination);
+  o.start(n); o.stop(n+.04);
+}
+// Quieter version of the mechanical return body.
+function srElec(c){
+  const n=c.currentTime, dur=.12;
+  const l=Math.floor(c.sampleRate*dur);
+  const b=c.createBuffer(1,l,c.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<l;i++){
+    const t=i/c.sampleRate;
+    d[i]=(Math.random()*2-1)*Math.exp(-t*20)*.3 + Math.sin(2*Math.PI*150*t)*Math.exp(-t*15)*.2;
+  }
+  const s=c.createBufferSource(); s.buffer=b;
+  const g=c.createGain(); g.gain.setValueAtTime(.1,n);
+  g.gain.exponentialRampToValueAtTime(.001,n+dur);
+  s.connect(g); g.connect(c.destination);
+  s.start(n); s.stop(n+dur+.03);
+}
+
+// ── Analog typewriter ──
+// Stroke: low wooden thud (bandpass noise ~150Hz) + brief metallic typebar
+// ping (~3kHz triangle, dropping).
+function skType(c){
+  const n=c.currentTime, dur=.07;
+  // Wooden body
+  const l=Math.floor(c.sampleRate*dur);
+  const b=c.createBuffer(1,l,c.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<l;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(l*.15));
+  const s=c.createBufferSource(); s.buffer=b;
+  const lf=c.createBiquadFilter(); lf.type='bandpass';
+  lf.frequency.value=150+Math.random()*60; lf.Q.value=3;
+  const lg=c.createGain(); lg.gain.setValueAtTime(.28,n);
+  lg.gain.exponentialRampToValueAtTime(.001,n+dur);
+  s.connect(lf); lf.connect(lg); lg.connect(c.destination);
+  s.start(n); s.stop(n+dur+.01);
+  // Typebar ping
+  const o=c.createOscillator(); o.type='triangle';
+  o.frequency.setValueAtTime(2800+Math.random()*400,n);
+  o.frequency.exponentialRampToValueAtTime(1800,n+.025);
+  const og=c.createGain(); og.gain.setValueAtTime(.04,n);
+  og.gain.exponentialRampToValueAtTime(.001,n+.025);
+  o.connect(og); og.connect(c.destination);
+  o.start(n); o.stop(n+.03);
+}
+// Return: brass bell ding (sine + harmonic) followed by a soft carriage slide.
+function srType(c){
+  const n=c.currentTime;
+  // Bell fundamental
+  const o=c.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(1108,n);
+  const og=c.createGain();
+  og.gain.setValueAtTime(0,n); og.gain.linearRampToValueAtTime(.18,n+.005);
+  og.gain.exponentialRampToValueAtTime(.001,n+.35);
+  o.connect(og); og.connect(c.destination);
+  o.start(n); o.stop(n+.4);
+  // Bell octave
+  const o2=c.createOscillator(); o2.type='sine'; o2.frequency.setValueAtTime(2216,n);
+  const og2=c.createGain();
+  og2.gain.setValueAtTime(0,n); og2.gain.linearRampToValueAtTime(.05,n+.005);
+  og2.gain.exponentialRampToValueAtTime(.001,n+.18);
+  o2.connect(og2); og2.connect(c.destination);
+  o2.start(n); o2.stop(n+.2);
+  // Carriage slide (filtered noise sweep, delayed)
+  const slideT=n+.12, sl=Math.floor(c.sampleRate*.18);
+  const sb=c.createBuffer(1,sl,c.sampleRate), sd=sb.getChannelData(0);
+  for(let i=0;i<sl;i++) sd[i]=(Math.random()*2-1)*Math.exp(-i/(sl*.5));
+  const ss=c.createBufferSource(); ss.buffer=sb;
+  const sf=c.createBiquadFilter(); sf.type='bandpass';
+  sf.frequency.setValueAtTime(800,slideT);
+  sf.frequency.exponentialRampToValueAtTime(300,slideT+.18);
+  sf.Q.value=2;
+  const sg=c.createGain(); sg.gain.setValueAtTime(.12,slideT);
+  sg.gain.exponentialRampToValueAtTime(.001,slideT+.18);
+  ss.connect(sf); sf.connect(sg); sg.connect(c.destination);
+  ss.start(slideT); ss.stop(slideT+.2);
+}
+
+// ── Rain (calm, ASMR-feel) ──
+// One drop: soft bandpass-noise impact + optional damped resonance ring.
+// Each keystroke fires 3 drops at evenly-spaced times so the rhythm feels
+// regular rather than splashy.
 function rainDrop(c,startT){
   const dur=.02+Math.random()*.01;             // 20-30ms
   const l=Math.floor(c.sampleRate*dur);
-  const b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);
+  const b=c.createBuffer(1,l,c.sampleRate), d=b.getChannelData(0);
   for(let i=0;i<l;i++) d[i]=Math.random()*2-1;
-  const s=c.createBufferSource();s.buffer=b;
-  // Narrow voice range so drops sound like each other.
-  const center=700+Math.random()*700;          // 700-1400Hz only
-  const bp=c.createBiquadFilter();bp.type='bandpass';
-  bp.frequency.value=center;
-  bp.Q.value=1.2+Math.random()*.8;             // 1.2-2.0 (gentle)
+  const s=c.createBufferSource(); s.buffer=b;
+  const center=700+Math.random()*700;          // narrow voice range: drops feel like siblings
+  const bp=c.createBiquadFilter(); bp.type='bandpass';
+  bp.frequency.value=center; bp.Q.value=1.2+Math.random()*.8;
   const g=c.createGain();
-  const peak=.012+Math.random()*.012;          // 0.012-0.024 (about half what it was)
-  // Long attack — drops genuinely fade in. 15-20ms.
+  const peak=.012+Math.random()*.012;
+  // Long attack: drops fade in instead of tapping
   g.gain.setValueAtTime(0,startT);
   g.gain.linearRampToValueAtTime(peak,startT+.015+Math.random()*.005);
   g.gain.exponentialRampToValueAtTime(.001,startT+dur);
-  s.connect(bp);bp.connect(g);g.connect(c.destination);
-  s.start(startT);s.stop(startT+dur+.01);
-  // Ring: shorter, narrower variation, quieter.
+  s.connect(bp); bp.connect(g); g.connect(c.destination);
+  s.start(startT); s.stop(startT+dur+.01);
+  // Ring: narrow-band noise (not a sine — sine sounds like xylophone).
   if (Math.random() < .7) {
-    const ringDur=.04+Math.random()*.03;       // 40-70ms
+    const ringDur=.04+Math.random()*.03;
     const rl=Math.floor(c.sampleRate*ringDur);
-    const rb=c.createBuffer(1,rl,c.sampleRate),rd=rb.getChannelData(0);
+    const rb=c.createBuffer(1,rl,c.sampleRate), rd=rb.getChannelData(0);
     for(let i=0;i<rl;i++) rd[i]=Math.random()*2-1;
-    const rs=c.createBufferSource();rs.buffer=rb;
-    const rbp=c.createBiquadFilter();rbp.type='bandpass';
+    const rs=c.createBufferSource(); rs.buffer=rb;
+    const rbp=c.createBiquadFilter(); rbp.type='bandpass';
     rbp.frequency.value=center*(.9+Math.random()*.2);
-    rbp.Q.value=5+Math.random()*2;              // 5-7
+    rbp.Q.value=5+Math.random()*2;
     const rg=c.createGain();
     rg.gain.setValueAtTime(0,startT);
-    rg.gain.linearRampToValueAtTime(peak*.2,startT+.008);  // quieter ring
+    rg.gain.linearRampToValueAtTime(peak*.2,startT+.008);
     rg.gain.exponentialRampToValueAtTime(.0005,startT+ringDur);
-    rs.connect(rbp);rbp.connect(rg);rg.connect(c.destination);
-    rs.start(startT);rs.stop(startT+ringDur+.01);
+    rs.connect(rbp); rbp.connect(rg); rg.connect(c.destination);
+    rs.start(startT); rs.stop(startT+ringDur+.01);
   }
 }
-// Per keystroke: exactly 3 drops, evenly spaced over a wide window. No
-// background wash — discrete soft drops only.
 function skRain(c){
   const n=c.currentTime;
-  // Three drops spaced evenly over ~180ms with tiny jitter so it doesn't
-  // sound mechanical. Even spacing = calm rhythm; random clumps = busy.
   const span=.18;
-  for(let i=0;i<3;i++){
-    const baseT=n+(i/3)*span;
-    rainDrop(c, baseT + Math.random()*.025);
-  }
+  for(let i=0;i<3;i++) rainDrop(c, n + (i/3)*span + Math.random()*.025);
 }
+// Return: one fatter drop, lower-pitched.
 function srRain(c){
-  const n=c.currentTime;
-  // Fatter drop: longer noise, lower-pitched ring, slightly louder.
-  const dur=.025+Math.random()*.01;
+  const n=c.currentTime, dur=.025+Math.random()*.01;
   const l=Math.floor(c.sampleRate*dur);
-  const b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);
+  const b=c.createBuffer(1,l,c.sampleRate), d=b.getChannelData(0);
   for(let i=0;i<l;i++) d[i]=Math.random()*2-1;
-  const s=c.createBufferSource();s.buffer=b;
+  const s=c.createBufferSource(); s.buffer=b;
   const center=450+Math.random()*600;
-  const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=center;bp.Q.value=.9;
+  const bp=c.createBiquadFilter(); bp.type='bandpass';
+  bp.frequency.value=center; bp.Q.value=.9;
   const g=c.createGain();
   g.gain.setValueAtTime(0,n);
   g.gain.linearRampToValueAtTime(.06,n+.003);
   g.gain.exponentialRampToValueAtTime(.001,n+dur);
-  s.connect(bp);bp.connect(g);g.connect(c.destination);
-  s.start(n);s.stop(n+dur+.01);
-  // Same noise-resonance approach for the return, just longer + lower.
+  s.connect(bp); bp.connect(g); g.connect(c.destination);
+  s.start(n); s.stop(n+dur+.01);
+  // Damped resonance ring (noise-band, not sine).
   const ringDur=.06+Math.random()*.04;
   const rl=Math.floor(c.sampleRate*ringDur);
-  const rb=c.createBuffer(1,rl,c.sampleRate),rd=rb.getChannelData(0);
+  const rb=c.createBuffer(1,rl,c.sampleRate), rd=rb.getChannelData(0);
   for(let i=0;i<rl;i++) rd[i]=Math.random()*2-1;
-  const rs=c.createBufferSource();rs.buffer=rb;
-  const rbp=c.createBiquadFilter();rbp.type='bandpass';rbp.frequency.value=center;rbp.Q.value=14;
+  const rs=c.createBufferSource(); rs.buffer=rb;
+  const rbp=c.createBiquadFilter(); rbp.type='bandpass';
+  rbp.frequency.value=center; rbp.Q.value=14;
   const rg=c.createGain();
   rg.gain.setValueAtTime(0,n);
   rg.gain.linearRampToValueAtTime(.025,n+.005);
   rg.gain.exponentialRampToValueAtTime(.0005,n+ringDur);
-  rs.connect(rbp);rbp.connect(rg);rg.connect(c.destination);
-  rs.start(n);rs.stop(n+ringDur+.01);
+  rs.connect(rbp); rbp.connect(rg); rg.connect(c.destination);
+  rs.start(n); rs.stop(n+ringDur+.01);
 }
-// ── CRT (static crackle, 1980s era) ──
-// Stroke: a soft sustained hiss with subtle texture variation — like the
-// background noise of a powered tube on a quiet channel, not a hit. The
-// envelope is mostly flat (short attack, sustain plateau, short release)
-// so it reads as a *wash* rather than a *strike*. Tiny subaudible pops
-// blend into the noise as texture, not transients.
-// Return: longer wash with a soft degauss sweep, no percussive thump.
+
+// ── CRT static (1980s era, soft) ──
+// Stroke: flat-amplitude lowpassed noise wash with subtle pop texture; soft
+// envelope so it reads as a wash, not a snare hit.
 function skCrt(c){
-  const n=c.currentTime,dur=.055,l=Math.floor(c.sampleRate*dur);
-  const b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);
+  const n=c.currentTime, dur=.055;
+  const l=Math.floor(c.sampleRate*dur);
+  const b=c.createBuffer(1,l,c.sampleRate), d=b.getChannelData(0);
   for(let i=0;i<l;i++) d[i]=Math.random()*2-1;
+  // Mix in 3-5 broadband micro-pops (the "crackle" character).
   const pops=3+Math.floor(Math.random()*3);
   for(let p=0;p<pops;p++){
     const pStart=Math.floor(Math.random()*l);
     const pLen=Math.floor(c.sampleRate*(.0008+Math.random()*.0015));
     const amp=.12+Math.random()*.08;
-    for(let i=0;i<pLen&&pStart+i<l;i++) d[pStart+i]+=(Math.random()*2-1)*amp;
+    for(let i=0;i<pLen && pStart+i<l;i++) d[pStart+i]+=(Math.random()*2-1)*amp;
   }
-  const s=c.createBufferSource();s.buffer=b;
-  // Highpass + lower-cutoff lowpass: less bright top end ("less sizzle").
-  const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=600;hp.Q.value=.5;
-  const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=4500;lp.Q.value=.3;
-  // Softer envelope: longer attack + release relative to total duration
-  // so the wash builds and fades rather than punching.
+  const s=c.createBufferSource(); s.buffer=b;
+  const hp=c.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=600; hp.Q.value=.5;
+  const lp=c.createBiquadFilter(); lp.type='lowpass';  lp.frequency.value=4500; lp.Q.value=.3;
   const g=c.createGain();
+  // Soft attack-then-release envelope (no plateau = no percussive hit).
   g.gain.setValueAtTime(0,n);
-  g.gain.linearRampToValueAtTime(.1,n+.022);   // 22ms attack (was 12ms)
-  g.gain.linearRampToValueAtTime(0,n+dur);     // ramp down through the full remaining duration
-  s.connect(hp);hp.connect(lp);lp.connect(g);g.connect(c.destination);
-  s.start(n);s.stop(n+dur+.01);
+  g.gain.linearRampToValueAtTime(.1,n+.022);
+  g.gain.linearRampToValueAtTime(0,n+dur);
+  s.connect(hp); hp.connect(lp); lp.connect(g); g.connect(c.destination);
+  s.start(n); s.stop(n+dur+.01);
 }
+// Return: longer noise wash with a degauss lowpass sweep and a low mains thump.
 function srCrt(c){
-  const n=c.currentTime,dur=.38,l=Math.floor(c.sampleRate*dur);
-  const b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);
-  for(let i=0;i<l;i++) d[i]=Math.random()*2-1;
-  // A few more pops, still soft.
-  const pops=7+Math.floor(Math.random()*5);
-  for(let p=0;p<pops;p++){
-    const pStart=Math.floor(Math.random()*l);
-    const pLen=Math.floor(c.sampleRate*(.001+Math.random()*.002));
-    const amp=.18+Math.random()*.12;
-    for(let i=0;i<pLen&&pStart+i<l;i++) d[pStart+i]+=(Math.random()*2-1)*amp;
+  const n=c.currentTime, dur=.28;
+  const l=Math.floor(c.sampleRate*dur);
+  const b=c.createBuffer(1,l,c.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<l;i++){
+    const t=i/c.sampleRate;
+    d[i]=(Math.random()*2-1)*Math.exp(-t*7);
   }
-  const s=c.createBufferSource();s.buffer=b;
-  const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=700;hp.Q.value=.5;
-  // Degauss: lowpass sweeps gently down from bright to dull.
-  const lp=c.createBiquadFilter();lp.type='lowpass';
-  lp.frequency.setValueAtTime(6500,n);
-  lp.frequency.exponentialRampToValueAtTime(1200,n+dur);
-  lp.Q.value=.4;
+  const pops=5+Math.floor(Math.random()*4);
+  for(let p=0;p<pops;p++){
+    const pStart=Math.floor(Math.random()*l*.9);
+    const pLen=Math.floor(c.sampleRate*(.002+Math.random()*.004));
+    for(let i=0;i<pLen && pStart+i<l;i++) d[pStart+i]+=(Math.random()*2-1)*.95*Math.exp(-i/(pLen*.5));
+  }
+  const s=c.createBufferSource(); s.buffer=b;
+  const f=c.createBiquadFilter(); f.type='lowpass';
+  f.frequency.setValueAtTime(6000,n);
+  f.frequency.exponentialRampToValueAtTime(700,n+dur);
+  f.Q.value=.4;
+  const g=c.createGain(); g.gain.setValueAtTime(.2,n);
+  g.gain.exponentialRampToValueAtTime(.001,n+dur);
+  s.connect(f); f.connect(g); g.connect(c.destination);
+  s.start(n); s.stop(n+dur+.01);
+  // Low mains thump
+  const o=c.createOscillator(); o.type='sine';
+  o.frequency.setValueAtTime(60,n); o.frequency.exponentialRampToValueAtTime(40,n+.22);
+  const og=c.createGain(); og.gain.setValueAtTime(.14,n);
+  og.gain.exponentialRampToValueAtTime(.001,n+.22);
+  o.connect(og); og.connect(c.destination);
+  o.start(n); o.stop(n+.24);
+}
+
+// ── Laser (space invader pews) ──
+function skLaser(c){
+  const n=c.currentTime, dur=.08+Math.random()*.04, sf=900+Math.random()*600;
+  const o=c.createOscillator(); o.type='square';
+  o.frequency.setValueAtTime(sf,n);
+  o.frequency.exponentialRampToValueAtTime(80,n+dur);
+  const o2=c.createOscillator(); o2.type='sawtooth';
+  o2.frequency.setValueAtTime(sf*1.5,n);
+  o2.frequency.exponentialRampToValueAtTime(40,n+dur*.8);
+  const g=c.createGain(); g.gain.setValueAtTime(.09,n);
+  g.gain.exponentialRampToValueAtTime(.001,n+dur);
+  const g2=c.createGain(); g2.gain.setValueAtTime(.03,n);
+  g2.gain.exponentialRampToValueAtTime(.001,n+dur*.7);
+  // High-pass noise sparkle on the attack
+  const nl=Math.floor(c.sampleRate*.015);
+  const nb=c.createBuffer(1,nl,c.sampleRate), nd=nb.getChannelData(0);
+  for(let i=0;i<nl;i++) nd[i]=(Math.random()*2-1)*Math.exp(-i/(nl*.3));
+  const ns=c.createBufferSource(); ns.buffer=nb;
+  const nf=c.createBiquadFilter(); nf.type='highpass'; nf.frequency.value=3000;
+  const ng=c.createGain(); ng.gain.setValueAtTime(.08,n);
+  ng.gain.exponentialRampToValueAtTime(.001,n+.015);
+  o.connect(g); o2.connect(g2); ns.connect(nf); nf.connect(ng);
+  g.connect(c.destination); g2.connect(c.destination); ng.connect(c.destination);
+  o.start(n); o2.start(n); ns.start(n);
+  o.stop(n+dur+.01); o2.stop(n+dur+.01); ns.stop(n+.02);
+}
+function srLaser(c){
+  const n=c.currentTime, dur=.2;
+  const o=c.createOscillator(); o.type='square';
+  o.frequency.setValueAtTime(1800,n);
+  o.frequency.exponentialRampToValueAtTime(50,n+dur);
+  const o2=c.createOscillator(); o2.type='sawtooth';
+  o2.frequency.setValueAtTime(2400,n);
+  o2.frequency.exponentialRampToValueAtTime(30,n+dur*.7);
+  const g=c.createGain(); g.gain.setValueAtTime(.12,n);
+  g.gain.exponentialRampToValueAtTime(.001,n+dur);
+  const g2=c.createGain(); g2.gain.setValueAtTime(.05,n);
+  g2.gain.exponentialRampToValueAtTime(.001,n+dur*.6);
+  o.connect(g); o2.connect(g2);
+  g.connect(c.destination); g2.connect(c.destination);
+  o.start(n); o2.start(n);
+  o.stop(n+dur+.01); o2.stop(n+dur+.01);
+}
+
+// ── Sandstorm (Darude melody — each keystroke plays the next note) ──
+const SSR=[493.88,493.88,493.88,493.88,493.88,493.88,493.88,493.88,
+           659.25,659.25,659.25,659.25,587.33,587.33,587.33,587.33,
+           493.88,493.88,493.88,493.88,493.88,493.88,493.88,493.88,
+           659.25,659.25,659.25,659.25,440,440,440,440,
+           440,440,440,440,493.88,493.88,493.88,493.88];
+let ssIdx=0, ssLast=0;
+function skSand(c){
+  const n=c.currentTime;
+  if (n-ssLast > 2) ssIdx=0;            // reset melody after a 2s pause
+  ssLast=n;
+  const f=SSR[ssIdx % SSR.length]; ssIdx++;
+  const dur=.08;
+  const o=c.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(f,n);
+  const s=c.createOscillator(); s.type='square';   s.frequency.setValueAtTime(f/2,n);
+  const fl=c.createBiquadFilter(); fl.type='lowpass';
+  fl.frequency.setValueAtTime(3000,n);
+  fl.frequency.exponentialRampToValueAtTime(600,n+dur);
+  fl.Q.value=8;
   const g=c.createGain();
   g.gain.setValueAtTime(0,n);
-  g.gain.linearRampToValueAtTime(.15,n+.02);
-  g.gain.setValueAtTime(.15,n+dur*.4);
+  g.gain.linearRampToValueAtTime(.12,n+.005);
+  g.gain.setValueAtTime(.12,n+dur*.6);
   g.gain.exponentialRampToValueAtTime(.001,n+dur);
-  s.connect(hp);hp.connect(lp);lp.connect(g);g.connect(c.destination);
-  s.start(n);s.stop(n+dur+.01);
+  o.connect(fl); s.connect(fl); fl.connect(g); g.connect(c.destination);
+  o.start(n); s.start(n);
+  o.stop(n+dur+.01); s.stop(n+dur+.01);
+}
+function stab(c,f,t,dur){
+  const o=c.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(f,t);
+  const fl=c.createBiquadFilter(); fl.type='lowpass';
+  fl.frequency.setValueAtTime(3500,t);
+  fl.frequency.exponentialRampToValueAtTime(500,t+dur);
+  fl.Q.value=10;
+  const g=c.createGain();
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(.14,t+.005);
+  g.gain.setValueAtTime(.14,t+dur*.5);
+  g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(fl); fl.connect(g); g.connect(c.destination);
+  o.start(t); o.stop(t+dur+.01);
+}
+function srSand(c){
+  const n=c.currentTime;
+  stab(c,493.88,n,.06); stab(c,659.25,n+.07,.1);
+  ssIdx=0;
+}
+
+// ── Birdsong ──
+const birdNotes=[2200,2600,2400,2800,2100,2500,2700,2300,2900,2000];
+let bnIdx=0;
+function skBird(c){
+  const n=c.currentTime;
+  const base=birdNotes[bnIdx % birdNotes.length] + Math.random()*300 - 150;
+  bnIdx++;
+  const dur=.06+Math.random()*.03;
+  const o=c.createOscillator(); o.type='sine';
+  o.frequency.setValueAtTime(base,n);
+  o.frequency.exponentialRampToValueAtTime(base*(1.1+Math.random()*.3),n+dur*.4);
+  o.frequency.exponentialRampToValueAtTime(base*.8,n+dur);
+  const g=c.createGain();
+  g.gain.setValueAtTime(0,n);
+  g.gain.linearRampToValueAtTime(.1,n+.005);
+  g.gain.setValueAtTime(.1,n+dur*.3);
+  g.gain.exponentialRampToValueAtTime(.001,n+dur);
+  o.connect(g); g.connect(c.destination);
+  o.start(n); o.stop(n+dur+.01);
+}
+// Return: two-note trill, alternating fifth + tonic.
+function srBird(c){
+  const n=c.currentTime, f1=2400+Math.random()*400, f2=f1*1.25;
+  for(let i=0;i<4;i++){
+    const t=n+i*.045;
+    const f=i%2===0 ? f2 : f1;
+    const o=c.createOscillator(); o.type='sine';
+    o.frequency.setValueAtTime(f,t);
+    o.frequency.exponentialRampToValueAtTime(f*.85,t+.04);
+    const g=c.createGain();
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(.09,t+.005);
+    g.gain.exponentialRampToValueAtTime(.001,t+.04);
+    o.connect(g); g.connect(c.destination);
+    o.start(t); o.stop(t+.05);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
