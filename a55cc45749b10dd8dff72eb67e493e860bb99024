@@ -1,0 +1,23 @@
+public/index.html
+  fefc735f624100f5 258,1739,1746,1765-1915,1958
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "a55cc45749b10dd8dff72eb67e493e860bb99024",
+  "prompts": {
+    "fefc735f624100f5": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1dc8cda44ffelDaagscJ3z4QiN",
+        "model": "cloudflare-workers-ai/@cf/moonshotai/kimi-k2.6"
+      },
+      "human_author": "avani",
+      "messages": [],
+      "total_additions": 155,
+      "total_deletions": 4,
+      "accepted_lines": 155,
+      "overriden_lines": 0
+    }
+  }
+}
