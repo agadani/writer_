@@ -255,7 +255,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
 <div id="sidebar">
   <div class="sb-header">
     <h1 class="glitch" onclick="W.oblique()" style="cursor:pointer" title="Need inspiration?">WRITER<span style="color:var(--acc)">_</span></h1>
-    <p>// neural_draft_v2.10</p>
+    <p>// neural_draft_v2.20</p>
   </div>
   <div class="sb-actions">
     <button class="btn btn-cyan" style="flex:1" onclick="W.createDoc()">+ Doc</button>
@@ -1736,14 +1736,14 @@ W.playKeystroke = type => {
   try {
     const c = getAC();
     if (c.state === 'suspended') { c.resume(); return; } // will play next time
-    ({mechanical:skMech,electric:skElec,laser:skLaser,sandstorm:skSand,birdsong:skBird})[type]?.(c);
+    ({mechanical:skMech,electric:skElec,laser:skLaser,sandstorm:skSand,birdsong:skBird,typewriter:skType,rain:skRain,crt:skCrt})[type]?.(c);
   } catch {}
 };
 W.playReturn = type => {
   try {
     const c = getAC();
     if (c.state === 'suspended') { c.resume(); return; }
-    ({mechanical:srMech,electric:srElec,laser:srLaser,sandstorm:srSand,birdsong:srBird})[type]?.(c);
+    ({mechanical:srMech,electric:srElec,laser:srLaser,sandstorm:srSand,birdsong:srBird,typewriter:srType,rain:srRain,crt:srCrt})[type]?.(c);
   } catch {}
 };
 
@@ -1762,6 +1762,157 @@ function stab(c,f,t,dur){const o=c.createOscillator();o.type='sawtooth';o.freque
 const birdNotes=[2200,2600,2400,2800,2100,2500,2700,2300,2900,2000];let bnIdx=0;
 function skBird(c){const n=c.currentTime,base=birdNotes[bnIdx%birdNotes.length]+Math.random()*300-150;bnIdx++;const dur=.06+Math.random()*.03;const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(base,n);o.frequency.exponentialRampToValueAtTime(base*(1.1+Math.random()*.3),n+dur*.4);o.frequency.exponentialRampToValueAtTime(base*.8,n+dur);const g=c.createGain();g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(.1,n+.005);g.gain.setValueAtTime(.1,n+dur*.3);g.gain.exponentialRampToValueAtTime(.001,n+dur);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+dur+.01)}
 function srBird(c){const n=c.currentTime,f1=2400+Math.random()*400,f2=f1*1.25;for(let i=0;i<4;i++){const t=n+i*.045,f=i%2===0?f2:f1;const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.85,t+.04);const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.09,t+.005);g.gain.exponentialRampToValueAtTime(.001,t+.04);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.05)}}
+// ── Typewriter (analog) ──
+// Stroke: low wooden thud (bandpass-filtered noise ~150Hz) + brief metallic
+// typebar ping (~3kHz). Return: bell ding (sine ~1100Hz) + carriage slide.
+function skType(c){const n=c.currentTime,l=c.sampleRate*.07,b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<l;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(l*.15));const s=c.createBufferSource();s.buffer=b;const lf=c.createBiquadFilter();lf.type='bandpass';lf.frequency.value=150+Math.random()*60;lf.Q.value=3;const lg=c.createGain();lg.gain.setValueAtTime(.28,n);lg.gain.exponentialRampToValueAtTime(.001,n+.07);s.connect(lf);lf.connect(lg);lg.connect(c.destination);s.start(n);s.stop(n+.08);const o=c.createOscillator();o.type='triangle';o.frequency.setValueAtTime(2800+Math.random()*400,n);o.frequency.exponentialRampToValueAtTime(1800,n+.025);const og=c.createGain();og.gain.setValueAtTime(.04,n);og.gain.exponentialRampToValueAtTime(.001,n+.025);o.connect(og);og.connect(c.destination);o.start(n);o.stop(n+.03)}
+function srType(c){const n=c.currentTime,o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(1108,n);const og=c.createGain();og.gain.setValueAtTime(0,n);og.gain.linearRampToValueAtTime(.18,n+.005);og.gain.exponentialRampToValueAtTime(.001,n+.35);const o2=c.createOscillator();o2.type='sine';o2.frequency.setValueAtTime(2216,n);const og2=c.createGain();og2.gain.setValueAtTime(0,n);og2.gain.linearRampToValueAtTime(.05,n+.005);og2.gain.exponentialRampToValueAtTime(.001,n+.18);o.connect(og);og.connect(c.destination);o2.connect(og2);og2.connect(c.destination);o.start(n);o2.start(n);o.stop(n+.4);o2.stop(n+.2);const slideT=n+.12,sl=c.sampleRate*.18,sb=c.createBuffer(1,sl,c.sampleRate),sd=sb.getChannelData(0);for(let i=0;i<sl;i++)sd[i]=(Math.random()*2-1)*Math.exp(-i/(sl*.5));const ss=c.createBufferSource();ss.buffer=sb;const sf=c.createBiquadFilter();sf.type='bandpass';sf.frequency.setValueAtTime(800,slideT);sf.frequency.exponentialRampToValueAtTime(300,slideT+.18);sf.Q.value=2;const sg=c.createGain();sg.gain.setValueAtTime(.12,slideT);sg.gain.exponentialRampToValueAtTime(.001,slideT+.18);ss.connect(sf);sf.connect(sg);sg.connect(c.destination);ss.start(slideT);ss.stop(slideT+.2)}
+// ── Rain ──
+// Stroke: a single small raindrop on a hard-ish surface. Two parts: a very
+// short noise pock (the impact) plus a faint pitched ring (the surface's
+// resonance, varying per drop). Both quiet. The point isn't to be heard;
+// it's to feel like a drop just landed somewhere outside.
+// Return: a fatter drop, slightly slower & lower-pitched.
+// One drop. Calm = soft, uniform, quiet. Drops still have minor variation
+// (it'd sound robotic without any) but the range is tight so consecutive
+// drops feel like the same gentle rain, not a mixed scene.
+function rainDrop(c,startT){
+  const dur=.02+Math.random()*.01;             // 20-30ms
+  const l=Math.floor(c.sampleRate*dur);
+  const b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<l;i++) d[i]=Math.random()*2-1;
+  const s=c.createBufferSource();s.buffer=b;
+  // Narrow voice range so drops sound like each other.
+  const center=700+Math.random()*700;          // 700-1400Hz only
+  const bp=c.createBiquadFilter();bp.type='bandpass';
+  bp.frequency.value=center;
+  bp.Q.value=1.2+Math.random()*.8;             // 1.2-2.0 (gentle)
+  const g=c.createGain();
+  const peak=.012+Math.random()*.012;          // 0.012-0.024 (about half what it was)
+  // Long attack — drops genuinely fade in. 15-20ms.
+  g.gain.setValueAtTime(0,startT);
+  g.gain.linearRampToValueAtTime(peak,startT+.015+Math.random()*.005);
+  g.gain.exponentialRampToValueAtTime(.001,startT+dur);
+  s.connect(bp);bp.connect(g);g.connect(c.destination);
+  s.start(startT);s.stop(startT+dur+.01);
+  // Ring: shorter, narrower variation, quieter.
+  if (Math.random() < .7) {
+    const ringDur=.04+Math.random()*.03;       // 40-70ms
+    const rl=Math.floor(c.sampleRate*ringDur);
+    const rb=c.createBuffer(1,rl,c.sampleRate),rd=rb.getChannelData(0);
+    for(let i=0;i<rl;i++) rd[i]=Math.random()*2-1;
+    const rs=c.createBufferSource();rs.buffer=rb;
+    const rbp=c.createBiquadFilter();rbp.type='bandpass';
+    rbp.frequency.value=center*(.9+Math.random()*.2);
+    rbp.Q.value=5+Math.random()*2;              // 5-7
+    const rg=c.createGain();
+    rg.gain.setValueAtTime(0,startT);
+    rg.gain.linearRampToValueAtTime(peak*.2,startT+.008);  // quieter ring
+    rg.gain.exponentialRampToValueAtTime(.0005,startT+ringDur);
+    rs.connect(rbp);rbp.connect(rg);rg.connect(c.destination);
+    rs.start(startT);rs.stop(startT+ringDur+.01);
+  }
+}
+// Per keystroke: exactly 3 drops, evenly spaced over a wide window. No
+// background wash — discrete soft drops only.
+function skRain(c){
+  const n=c.currentTime;
+  // Three drops spaced evenly over ~180ms with tiny jitter so it doesn't
+  // sound mechanical. Even spacing = calm rhythm; random clumps = busy.
+  const span=.18;
+  for(let i=0;i<3;i++){
+    const baseT=n+(i/3)*span;
+    rainDrop(c, baseT + Math.random()*.025);
+  }
+}
+function srRain(c){
+  const n=c.currentTime;
+  // Fatter drop: longer noise, lower-pitched ring, slightly louder.
+  const dur=.025+Math.random()*.01;
+  const l=Math.floor(c.sampleRate*dur);
+  const b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<l;i++) d[i]=Math.random()*2-1;
+  const s=c.createBufferSource();s.buffer=b;
+  const center=450+Math.random()*600;
+  const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=center;bp.Q.value=.9;
+  const g=c.createGain();
+  g.gain.setValueAtTime(0,n);
+  g.gain.linearRampToValueAtTime(.06,n+.003);
+  g.gain.exponentialRampToValueAtTime(.001,n+dur);
+  s.connect(bp);bp.connect(g);g.connect(c.destination);
+  s.start(n);s.stop(n+dur+.01);
+  // Same noise-resonance approach for the return, just longer + lower.
+  const ringDur=.06+Math.random()*.04;
+  const rl=Math.floor(c.sampleRate*ringDur);
+  const rb=c.createBuffer(1,rl,c.sampleRate),rd=rb.getChannelData(0);
+  for(let i=0;i<rl;i++) rd[i]=Math.random()*2-1;
+  const rs=c.createBufferSource();rs.buffer=rb;
+  const rbp=c.createBiquadFilter();rbp.type='bandpass';rbp.frequency.value=center;rbp.Q.value=14;
+  const rg=c.createGain();
+  rg.gain.setValueAtTime(0,n);
+  rg.gain.linearRampToValueAtTime(.025,n+.005);
+  rg.gain.exponentialRampToValueAtTime(.0005,n+ringDur);
+  rs.connect(rbp);rbp.connect(rg);rg.connect(c.destination);
+  rs.start(n);rs.stop(n+ringDur+.01);
+}
+// ── CRT (static crackle, 1980s era) ──
+// Stroke: a soft sustained hiss with subtle texture variation — like the
+// background noise of a powered tube on a quiet channel, not a hit. The
+// envelope is mostly flat (short attack, sustain plateau, short release)
+// so it reads as a *wash* rather than a *strike*. Tiny subaudible pops
+// blend into the noise as texture, not transients.
+// Return: longer wash with a soft degauss sweep, no percussive thump.
+function skCrt(c){
+  const n=c.currentTime,dur=.055,l=Math.floor(c.sampleRate*dur);
+  const b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<l;i++) d[i]=Math.random()*2-1;
+  const pops=3+Math.floor(Math.random()*3);
+  for(let p=0;p<pops;p++){
+    const pStart=Math.floor(Math.random()*l);
+    const pLen=Math.floor(c.sampleRate*(.0008+Math.random()*.0015));
+    const amp=.12+Math.random()*.08;
+    for(let i=0;i<pLen&&pStart+i<l;i++) d[pStart+i]+=(Math.random()*2-1)*amp;
+  }
+  const s=c.createBufferSource();s.buffer=b;
+  // Highpass + lower-cutoff lowpass: less bright top end ("less sizzle").
+  const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=600;hp.Q.value=.5;
+  const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=4500;lp.Q.value=.3;
+  // Softer envelope: longer attack + release relative to total duration
+  // so the wash builds and fades rather than punching.
+  const g=c.createGain();
+  g.gain.setValueAtTime(0,n);
+  g.gain.linearRampToValueAtTime(.1,n+.022);   // 22ms attack (was 12ms)
+  g.gain.linearRampToValueAtTime(0,n+dur);     // ramp down through the full remaining duration
+  s.connect(hp);hp.connect(lp);lp.connect(g);g.connect(c.destination);
+  s.start(n);s.stop(n+dur+.01);
+}
+function srCrt(c){
+  const n=c.currentTime,dur=.38,l=Math.floor(c.sampleRate*dur);
+  const b=c.createBuffer(1,l,c.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<l;i++) d[i]=Math.random()*2-1;
+  // A few more pops, still soft.
+  const pops=7+Math.floor(Math.random()*5);
+  for(let p=0;p<pops;p++){
+    const pStart=Math.floor(Math.random()*l);
+    const pLen=Math.floor(c.sampleRate*(.001+Math.random()*.002));
+    const amp=.18+Math.random()*.12;
+    for(let i=0;i<pLen&&pStart+i<l;i++) d[pStart+i]+=(Math.random()*2-1)*amp;
+  }
+  const s=c.createBufferSource();s.buffer=b;
+  const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=700;hp.Q.value=.5;
+  // Degauss: lowpass sweeps gently down from bright to dull.
+  const lp=c.createBiquadFilter();lp.type='lowpass';
+  lp.frequency.setValueAtTime(6500,n);
+  lp.frequency.exponentialRampToValueAtTime(1200,n+dur);
+  lp.Q.value=.4;
+  const g=c.createGain();
+  g.gain.setValueAtTime(0,n);
+  g.gain.linearRampToValueAtTime(.15,n+.02);
+  g.gain.setValueAtTime(.15,n+dur*.4);
+  g.gain.exponentialRampToValueAtTime(.001,n+dur);
+  s.connect(hp);hp.connect(lp);lp.connect(g);g.connect(c.destination);
+  s.start(n);s.stop(n+dur+.01);
+}
 
 // ═══════════════════════════════════════════════════════════
 // MODALS
@@ -1804,7 +1955,7 @@ W.modalHTML.settings = () => {
       <div class="field"><label>font_size: <span style="color:var(--acc2)">${s.fontSize}px</span></label><input type="range" min="12" max="32" value="${s.fontSize}" oninput="W.setSetting('fontSize',this.value);this.previousElementSibling.querySelector('span').textContent=this.value+'px'"></div>
       <div class="field"><label>line_height: <span style="color:var(--acc2)">${s.lineSpacing}</span></label><input type="range" min="1" max="3" step="0.1" value="${s.lineSpacing}" oninput="W.setSetting('lineSpacing',this.value);this.previousElementSibling.querySelector('span').textContent=this.value"></div>
       <div class="field"><label style="cursor:pointer"><input type="checkbox" ${s.soundEnabled==='true'?'checked':''} onchange="W.setSetting('soundEnabled',String(this.checked));W.openModal('settings')"> audio_feedback</label></div>
-      ${s.soundEnabled==='true'?`<div class="field"><select onchange="W.setSetting('soundType',this.value)"><option value="mechanical" ${s.soundType==='mechanical'?'selected':''}>mechanical_keys</option><option value="electric" ${s.soundType==='electric'?'selected':''}>electric_keys</option><option value="laser" ${s.soundType==='laser'?'selected':''}>space_invader_laser</option><option value="sandstorm" ${s.soundType==='sandstorm'?'selected':''}>darude_sandstorm</option><option value="birdsong" ${s.soundType==='birdsong'?'selected':''}>birdsong</option></select></div>`:''}
+      ${s.soundEnabled==='true'?`<div class="field"><select onchange="W.setSetting('soundType',this.value)"><option value="mechanical" ${s.soundType==='mechanical'?'selected':''}>mechanical_keys</option><option value="electric" ${s.soundType==='electric'?'selected':''}>electric_keys</option><option value="typewriter" ${s.soundType==='typewriter'?'selected':''}>analog_typewriter</option><option value="rain" ${s.soundType==='rain'?'selected':''}>rain</option><option value="crt" ${s.soundType==='crt'?'selected':''}>crt_static</option><option value="laser" ${s.soundType==='laser'?'selected':''}>space_invader_laser</option><option value="sandstorm" ${s.soundType==='sandstorm'?'selected':''}>darude_sandstorm</option><option value="birdsong" ${s.soundType==='birdsong'?'selected':''}>birdsong</option></select></div>`:''}
       <div class="field"><label style="cursor:pointer;color:color-mix(in srgb,var(--acc) 80%,transparent)"><input type="checkbox" ${s.hemingwayMode==='true'?'checked':''} onchange="W.setSetting('hemingwayMode',String(this.checked))"> hemingway_protocol</label><div style="font-size:10px;color:color-mix(in srgb,var(--acc) 50%,transparent);margin-top:4px;margin-left:20px">// disables delete. write forward only.</div></div>
       <div class="field"><label>revision_history_depth: <span style="color:var(--acc2)">${(parseInt(s.revisionDepth,10)||0) || 'unlimited'}</span></label><input type="range" min="0" max="500" step="10" value="${parseInt(s.revisionDepth,10)||0}" oninput="W.setSetting('revisionDepth',this.value);this.previousElementSibling.querySelector('span').textContent=(parseInt(this.value,10)||0)||'unlimited'"><div style="font-size:10px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-top:4px">// auto-saved versions per doc to keep. named/saved versions are never deleted. 0 = unlimited.</div></div>
       <div class="field"><label>comment_markers</label><div style="display:flex;gap:8px"><div style="flex:1"><div style="font-size:9px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-bottom:2px">open</div><input type="text" value="${W.esc(s.commentOpen||'%%')}" placeholder="%%" onchange="W.setSetting('commentOpen',this.value);W.renderHighlight()"></div><div style="flex:1"><div style="font-size:9px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-bottom:2px">close</div><input type="text" value="${W.esc(s.commentClose||'%%')}" placeholder="%%" onchange="W.setSetting('commentClose',this.value);W.renderHighlight()"></div></div><div style="font-size:10px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-top:4px">// text between these markers is greyed out</div></div>
