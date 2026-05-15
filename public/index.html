@@ -56,6 +56,22 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
 .doc-item.active .title{color:var(--text)}
 .doc-item .meta{font-size:10px;color:color-mix(in srgb,var(--text) 50%,transparent);margin-top:2px}
 .doc-item.dragging{opacity:.4}
+/* Outline view */
+#outline-list{outline:none}
+#outline-list .ol-empty{padding:16px;font-size:11px;color:color-mix(in srgb,var(--text) 50%,transparent);line-height:1.6}
+.ol-item{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;border-left:2px solid transparent;font-size:12px;color:color-mix(in srgb,var(--text) 75%,transparent);transition:all .12s;user-select:none;white-space:nowrap;overflow:hidden}
+.ol-item:hover{background:color-mix(in srgb,var(--text) 8%,transparent);color:var(--text)}
+.ol-item.active{background:color-mix(in srgb,var(--text) 14%,transparent);border-left-color:var(--text);color:var(--text)}
+.ol-item .chev{width:12px;flex-shrink:0;font-size:9px;color:color-mix(in srgb,var(--text) 50%,transparent);text-align:center;cursor:pointer}
+.ol-item .chev:hover{color:var(--text)}
+.ol-item .chev.leaf{cursor:default;opacity:.25}
+.ol-item .ol-text{flex:1;overflow:hidden;text-overflow:ellipsis}
+.ol-item .ol-wc{flex-shrink:0;font-size:9px;color:color-mix(in srgb,var(--text) 45%,transparent);letter-spacing:.05em}
+.ol-item.l2{padding-left:24px}
+.ol-item.l3{padding-left:38px}
+.ol-item.l4{padding-left:52px}
+.ol-item.l5{padding-left:66px}
+.ol-item.l6{padding-left:80px}
 .drop-above{border-top:2px solid var(--text)!important}
 .root-drop{border-top:2px dashed color-mix(in srgb,var(--text) 40%,transparent);margin:2px 12px;height:0;transition:height .15s}
 .root-drop.drop-target{height:8px;border-color:var(--text);background:color-mix(in srgb,var(--text) 8%,transparent)}
@@ -89,9 +105,22 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
       Chromium resolves it differently inside form controls vs blocks. */
 #editor-highlight{position:absolute;left:0;right:0;top:0;padding:32px 64px;font-family:ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace;font-size:18px;line-height:1.8;white-space:pre-wrap;overflow-wrap:break-word;pointer-events:none;border:none;tab-size:4;-moz-tab-size:4;-webkit-text-size-adjust:100%;text-size-adjust:100%;will-change:transform;transform:translateZ(0)}
 #editor-highlight .cm{color:var(--cm);opacity:1;filter:none}
+#editor-highlight .fm{background:color-mix(in srgb,var(--text) 22%,transparent);border-radius:2px}
+#editor-highlight .fm.cur{background:color-mix(in srgb,var(--acc2) 50%,transparent);color:var(--bg);box-shadow:0 0 0 1px var(--acc2)}
 #editor{position:absolute;inset:0;width:100%;height:100%;resize:none;outline:none;padding:32px 64px;border:0;font-family:ui-monospace,"SF Mono","Menlo","Roboto Mono","Droid Sans Mono","Courier New",Consolas,monospace;font-size:18px;line-height:1.8;white-space:pre-wrap;overflow-wrap:break-word;tab-size:4;-moz-tab-size:4;color:transparent;-webkit-text-fill-color:transparent;caret-color:var(--acc);background:transparent;scrollbar-width:none;-webkit-text-size-adjust:100%;text-size-adjust:100%;-webkit-appearance:none;appearance:none;border-radius:0}
 #editor::-webkit-scrollbar{display:none}
 #editor::placeholder{-webkit-text-fill-color:color-mix(in srgb,var(--text) 40%,transparent)}
+/* Find/replace inline bar — opens at the bottom of the left pane on Ctrl+F. */
+#find-bar{display:flex;align-items:center;gap:4px;padding:6px 8px;border-top:1px solid color-mix(in srgb,var(--text) 20%,transparent);background:color-mix(in srgb,var(--bg) 85%,black);flex-shrink:0;flex-wrap:wrap}
+#find-bar input[type=text]{flex:1;min-width:120px;background:color-mix(in srgb,var(--bg) 90%,black);border:1px solid color-mix(in srgb,var(--text) 25%,transparent);color:var(--text);font-family:inherit;font-size:12px;padding:6px 8px;outline:none}
+#find-bar input[type=text]:focus{border-color:color-mix(in srgb,var(--text) 60%,transparent)}
+#find-bar .find-count{font-size:10px;color:color-mix(in srgb,var(--text) 55%,transparent);min-width:48px;text-align:center;letter-spacing:.05em}
+#find-bar .find-btn{background:none;border:1px solid color-mix(in srgb,var(--text) 25%,transparent);color:color-mix(in srgb,var(--text) 70%,transparent);font-family:inherit;font-size:11px;padding:6px 8px;cursor:pointer;transition:all .15s;letter-spacing:.05em}
+#find-bar .find-btn:hover{color:var(--text);border-color:color-mix(in srgb,var(--text) 60%,transparent)}
+#find-bar .find-btn.on{color:var(--acc2);border-color:color-mix(in srgb,var(--acc2) 60%,transparent);background:color-mix(in srgb,var(--acc2) 12%,transparent)}
+#find-bar .find-btn.find-close{margin-left:4px;color:color-mix(in srgb,var(--acc) 80%,transparent);border-color:color-mix(in srgb,var(--acc) 30%,transparent)}
+#find-bar .find-btn.find-close:hover{color:var(--acc)}
+#find-bar.no-match input[type=text]:first-of-type{border-color:color-mix(in srgb,var(--acc) 50%,transparent)}
 
 #conflict-banner{padding:6px 12px;font-size:10px;font-family:inherit;text-transform:uppercase;letter-spacing:.1em;background:color-mix(in srgb,var(--acc2) 8%,transparent);border-bottom:1px solid color-mix(in srgb,var(--acc2) 25%,transparent);color:var(--acc2);display:flex;align-items:center;gap:8px;flex-shrink:0}
 #conflict-banner .dismiss{background:none;border:none;color:color-mix(in srgb,var(--acc2) 60%,transparent);font-family:inherit;font-size:12px;cursor:pointer;padding:0 4px;transition:color .15s}
@@ -226,14 +255,16 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
 <div id="sidebar">
   <div class="sb-header">
     <h1 class="glitch" onclick="W.oblique()" style="cursor:pointer" title="Need inspiration?">WRITER<span style="color:var(--acc)">_</span></h1>
-    <p>// neural_draft_v2.8</p>
+    <p>// neural_draft_v2.10</p>
   </div>
   <div class="sb-actions">
     <button class="btn btn-cyan" style="flex:1" onclick="W.createDoc()">+ Doc</button>
     <button class="btn btn-pink" onclick="W.createFolder()">+ Folder</button>
   </div>
   <div class="sb-docs" id="doc-list"></div>
+  <div class="sb-docs" id="outline-list" style="display:none" tabindex="0"></div>
   <div class="sb-tools">
+    <button class="tool-btn" id="outline-toggle" onclick="W.toggleOutline()" title="Outline (Ctrl+O)">&gt; outline</button>
     <button class="tool-btn" onclick="W.openModal('stats')">&gt; statistics</button>
     <button class="tool-btn" onclick="W.openModal('revisions')">&gt; versions</button>
     <button class="tool-btn yellow" onclick="W.openModal('export')">&gt; export</button>
@@ -257,6 +288,18 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
       <div id="editor-wrap">
         <div id="editor-highlight" class="flicker"></div>
         <textarea id="editor" placeholder=">> begin_transmission..." spellcheck="true"></textarea>
+      </div>
+      <div id="find-bar" style="display:none">
+        <input type="text" id="find-input" placeholder="find..." autocomplete="off" spellcheck="false">
+        <input type="text" id="find-replace" placeholder="replace..." autocomplete="off" spellcheck="false">
+        <span id="find-count" class="find-count">0 / 0</span>
+        <button class="find-btn" id="find-case" title="Match case (Aa)" onclick="W._findToggleCase()">Aa</button>
+        <button class="find-btn" id="find-regex" title="Regex (.*)" onclick="W._findToggleRegex()">.*</button>
+        <button class="find-btn" title="Previous (Shift+Enter)" onclick="W.findStep(-1)">&lt;</button>
+        <button class="find-btn" title="Next (Enter)" onclick="W.findStep(1)">&gt;</button>
+        <button class="find-btn" title="Replace one" onclick="W.findReplaceOne()">replace</button>
+        <button class="find-btn" title="Replace all" onclick="W.findReplaceAll()">all</button>
+        <button class="find-btn find-close" title="Close (Esc)" onclick="W.closeFind()">×</button>
       </div>
     </div>
     <div class="pane" id="right-pane" style="display:none">
@@ -329,7 +372,9 @@ W.dragDocId = null;
 
 const DEFAULTS = {theme:'cyberpunk',fontFamily:'mono',fontSize:'18',lineSpacing:'1.8',
   paperColor:'#0a0a12',textColor:'#05d9e8',soundEnabled:'false',soundType:'mechanical',hemingwayMode:'false',commentOpen:'%%',commentClose:'%%',commentColor:'#555555',
-  revisionDepth:'100'};  // per-doc cap on auto-saved revisions; named versions always kept; 0 = unlimited
+  revisionDepth:'100',  // per-doc cap on auto-saved revisions; named versions always kept; 0 = unlimited
+  headingMarker:'#',    // outline view treats lines starting with this as headings; level = number of repeats
+  typewriter:'false'};  // typewriter scrolling: keeps the current line vertically centered
 
 // ── IndexedDB ──────────────────────────────────────────────
 W.db = null;
@@ -375,6 +420,45 @@ W.isDarkColor = hex => {
   const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
   // Standard relative luminance (perceived brightness). <0.5 = dark.
   return (0.2126*r + 0.7152*g + 0.0722*b) / 255 < 0.5;
+};
+
+// ── Outline ────────────────────────────────────────────────
+// Parse a doc body into a flat list of headings. A heading is any line
+// whose first non-whitespace run is exactly N copies of settings.headingMarker
+// followed by a space, where N is the level (1..6). Returns an array of
+// { level, text, lineStart, charStart, wordCount } where lineStart is the
+// 0-based line index in the text and charStart is the absolute char index
+// of the start of the heading line. wordCount counts words from this heading
+// up to (but not including) the next heading.
+W.outlineFor = text => {
+  const marker = (W.settings.headingMarker || '#').trim() || '#';
+  const lines = text.split('\n');
+  const out = [];
+  let charPos = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const ln = lines[i];
+    const trimmed = ln.replace(/^[ \t]+/, '');
+    let level = 0;
+    while (level < 6 && trimmed.startsWith(marker.repeat(level+1))) level++;
+    // Must have a space (or be exactly the markers with no text) after the run.
+    if (level > 0) {
+      const after = trimmed.slice(marker.length * level);
+      if (after === '' || after.startsWith(' ') || after.startsWith('\t')) {
+        out.push({ level, text: after.trim(), lineStart: i, charStart: charPos, wordCount: 0 });
+      }
+    }
+    charPos += ln.length + 1;  // +1 for the newline
+  }
+  // Compute per-section word counts: words from this heading line through
+  // the line before the next heading (or end of doc).
+  for (let k = 0; k < out.length; k++) {
+    const from = out[k].lineStart + 1;
+    const to = k+1 < out.length ? out[k+1].lineStart : lines.length;
+    let words = 0;
+    for (let i = from; i < to; i++) words += W.wc(lines[i]);
+    out[k].wordCount = words;
+  }
+  return out;
 };
 
 // ── Revision GC ────────────────────────────────────────────
@@ -463,39 +547,78 @@ W.applySettings = () => {
 };
 
 // ── Highlight rendering (%%...%% comments) ─────────────────
+// Highlighting pipeline. We have two layered highlight schemes:
+//   - comments  (cm class)         : %%…%% ranges, dim color
+//   - find      (fm class)         : all current find matches, faint bg
+//   - current   (fm cur class)     : the currently-selected find match
+// Each scheme contributes a list of character ranges into the same text.
+// renderHighlight() builds the union, splits it at every boundary so the
+// resulting spans never overlap, then emits one span per segment with a
+// combined class string. The textarea's text is unchanged regardless.
+
 W.renderHighlight = () => {
   const ed = document.getElementById('editor');
   const hl = document.getElementById('editor-highlight');
-  hl.innerHTML = W.highlightComments(ed.value) + '\n';
+  const text = ed.value;
+  // Comment ranges from the existing comment-marker logic.
+  const ranges = W._commentRanges(text);
+  // Find-match ranges, if the find bar is open and has matches.
+  if (W.findBarOpen && W._findMatches?.length) {
+    for (let i = 0; i < W._findMatches.length; i++) {
+      const m = W._findMatches[i];
+      ranges.push({ start: m.start, end: m.end, cls: i === W._findIdx ? 'fm cur' : 'fm' });
+    }
+  }
+  hl.innerHTML = W._renderLayered(text, ranges) + '\n';
   if (W._syncHL) W._syncHL();
 };
 
-// Shared comment highlighting logic (supports different open/close markers)
-W.highlightComments = text => {
+// Build comment ranges (was the body of highlightComments).
+W._commentRanges = text => {
   const open = W.settings.commentOpen || '%%';
   const close = W.settings.commentClose || '%%';
-  const eOpen = W.escHL(open);
-  const eClose = W.escHL(close);
-  let html = '';
+  const out = [];
   let pos = 0;
   while (pos < text.length) {
     const start = text.indexOf(open, pos);
-    if (start === -1) { html += W.escHL(text.slice(pos)); break; }
-    // Found open marker — look for close
-    const afterOpen = start + open.length;
-    const end = text.indexOf(close, afterOpen);
-    if (end === -1) {
-      // Unclosed — render rest as plain text including the open marker
-      html += W.escHL(text.slice(pos));
-      break;
-    }
-    // Render text before the comment, then the comment
-    html += W.escHL(text.slice(pos, start));
-    html += '<span class="cm">' + eOpen + W.escHL(text.slice(afterOpen, end)) + eClose + '</span>';
+    if (start === -1) break;
+    const end = text.indexOf(close, start + open.length);
+    if (end === -1) break;
+    out.push({ start, end: end + close.length, cls: 'cm' });
     pos = end + close.length;
   }
-  return html;
+  return out;
 };
+
+// Given the source text and a list of {start, end, cls} ranges (possibly
+// overlapping), emit HTML where every character of `text` is rendered exactly
+// once, inside a span if any range covers it. Multiple overlapping classes
+// are space-joined ("cm fm cur").
+W._renderLayered = (text, ranges) => {
+  if (!ranges.length) return W.escHL(text);
+  // Collect unique boundary positions.
+  const bounds = new Set([0, text.length]);
+  for (const r of ranges) { bounds.add(r.start); bounds.add(r.end); }
+  const cuts = [...bounds].sort((a,b) => a-b);
+  let out = '';
+  for (let i = 0; i + 1 < cuts.length; i++) {
+    const a = cuts[i], b = cuts[i+1];
+    if (a >= b) continue;
+    // Classes that fully cover [a, b).
+    let cls = '';
+    for (const r of ranges) {
+      if (r.start <= a && r.end >= b) cls += (cls ? ' ' : '') + r.cls;
+    }
+    const seg = W.escHL(text.slice(a, b));
+    out += cls ? '<span class="' + cls + '">' + seg + '</span>' : seg;
+  }
+  return out;
+};
+
+// Back-compat: a few places (e.g. the split-pane right side) still call
+// highlightComments directly to render simple text. Keep it as a no-frills
+// wrapper that produces only the comment layer.
+W.highlightComments = text => W._renderLayered(text, W._commentRanges(text));
 W.escHL = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 // Sync scroll between textarea and highlight overlay using transform.
@@ -524,6 +647,137 @@ W.loadAll = async () => {
   W.sessions = await W.dbAll('sessions');
   W.clouds = await W.dbAll('clouds');
   await W.loadSettings();
+};
+
+// ── Outline view ───────────────────────────────────────────
+// Visibility + state. Collapsed nodes (by line-start index, persisted per
+// session only) hide their descendants in the outline; the underlying
+// document is never modified.
+W.outlineOpen = false;
+W._olCollapsed = new Set();
+W._olSelected = 0;
+
+W.toggleOutline = () => {
+  W.outlineOpen = !W.outlineOpen;
+  const dl = document.getElementById('doc-list');
+  const ol = document.getElementById('outline-list');
+  const btn = document.getElementById('outline-toggle');
+  if (W.outlineOpen) {
+    // Make sure the sidebar is visible (otherwise toggling does nothing useful).
+    document.getElementById('sidebar').classList.remove('closed');
+    if (W.isMobile()) document.getElementById('sb-backdrop')?.classList.add('open');
+    dl.style.display = 'none';
+    ol.style.display = '';
+    btn.textContent = '> docs';
+    W.renderOutline();
+    ol.focus();
+  } else {
+    dl.style.display = '';
+    ol.style.display = 'none';
+    btn.textContent = '> outline';
+  }
+};
+
+W.renderOutline = () => {
+  const ol = document.getElementById('outline-list');
+  if (!ol || !W.outlineOpen) return;
+  const text = document.getElementById('editor').value;
+  const headings = W.outlineFor(text);
+  if (!headings.length) {
+    const m = W.settings.headingMarker || '#';
+    ol.innerHTML = `<div class="ol-empty">// no headings found<br>// type a line starting with <span style="color:var(--acc2)">${W.esc(m)} heading</span> to add one<br><br>// change the marker in config</div>`;
+    return;
+  }
+  // Compute which headings are hidden because an ancestor is collapsed.
+  const hidden = new Set();
+  const collapsedStack = [];  // stack of {level, lineStart} of currently-active collapsed ancestors
+  for (const h of headings) {
+    while (collapsedStack.length && collapsedStack[collapsedStack.length-1].level >= h.level) collapsedStack.pop();
+    if (collapsedStack.length) hidden.add(h.lineStart);
+    if (W._olCollapsed.has(h.lineStart)) collapsedStack.push(h);
+  }
+  // Determine which headings have children (next heading has higher level).
+  const hasChildren = headings.map((h, i) => {
+    const next = headings[i+1];
+    return next && next.level > h.level;
+  });
+  if (W._olSelected >= headings.length) W._olSelected = headings.length - 1;
+  let html = '';
+  for (let i = 0; i < headings.length; i++) {
+    if (hidden.has(headings[i].lineStart)) continue;
+    const h = headings[i];
+    const collapsed = W._olCollapsed.has(h.lineStart);
+    const chev = hasChildren[i] ? (collapsed ? '▶' : '▼') : '·';
+    const chevCls = hasChildren[i] ? 'chev' : 'chev leaf';
+    const sel = i === W._olSelected ? ' active' : '';
+    const display = h.text || `(unnamed h${h.level})`;
+    html += `<div class="ol-item l${h.level}${sel}" data-idx="${i}" onclick="W.outlineJump(${i})">
+      <span class="${chevCls}" onclick="event.stopPropagation();W.outlineToggleCollapse(${h.lineStart})">${chev}</span>
+      <span class="ol-text" title="${W.esc(display)}">${W.esc(display)}</span>
+      <span class="ol-wc">${h.wordCount}w</span>
+    </div>`;
+  }
+  ol.innerHTML = html;
+};
+
+W.outlineToggleCollapse = lineStart => {
+  if (W._olCollapsed.has(lineStart)) W._olCollapsed.delete(lineStart);
+  else W._olCollapsed.add(lineStart);
+  W.renderOutline();
+};
+
+W.outlineJump = idx => {
+  const text = document.getElementById('editor').value;
+  const headings = W.outlineFor(text);
+  const h = headings[idx];
+  if (!h) return;
+  W._olSelected = idx;
+  const ed = document.getElementById('editor');
+  // Place caret at the start of the heading line and scroll it into view.
+  ed.focus();
+  ed.setSelectionRange(h.charStart, h.charStart);
+  // Compute scroll target: line index * line height, with a little headroom.
+  const cs = getComputedStyle(ed);
+  const lh = parseFloat(cs.lineHeight) || 32;
+  const padTop = parseFloat(cs.paddingTop) || 0;
+  ed.scrollTop = Math.max(0, h.lineStart * lh + padTop - lh);
+  W.renderOutline();
+  if (W.isMobile()) W.closeSidebar?.();
+};
+
+// Arrow-key navigation when the outline list has focus.
+document.addEventListener('keydown', e => {
+  if (!W.outlineOpen) return;
+  if (document.activeElement !== document.getElementById('outline-list')) return;
+  if (e.key === 'ArrowDown' || e.key === 'j') { e.preventDefault(); W._olMove(1); }
+  else if (e.key === 'ArrowUp' || e.key === 'k') { e.preventDefault(); W._olMove(-1); }
+  else if (e.key === 'Enter') { e.preventDefault(); W.outlineJump(W._olSelected); }
+  else if (e.key === 'ArrowRight' || e.key === 'l') {
+    const headings = W.outlineFor(document.getElementById('editor').value);
+    const h = headings[W._olSelected];
+    if (h) { W._olCollapsed.delete(h.lineStart); W.renderOutline(); }
+  } else if (e.key === 'ArrowLeft' || e.key === 'h') {
+    const headings = W.outlineFor(document.getElementById('editor').value);
+    const h = headings[W._olSelected];
+    if (h) { W._olCollapsed.add(h.lineStart); W.renderOutline(); }
+  }
+});
+W._olMove = delta => {
+  const headings = W.outlineFor(document.getElementById('editor').value);
+  // Skip over hidden items.
+  const hidden = new Set();
+  const stack = [];
+  for (const h of headings) {
+    while (stack.length && stack[stack.length-1].level >= h.level) stack.pop();
+    if (stack.length) hidden.add(h.lineStart);
+    if (W._olCollapsed.has(h.lineStart)) stack.push(h);
+  }
+  let i = W._olSelected;
+  for (let n = 0; n < headings.length; n++) {
+    i = (i + delta + headings.length) % headings.length;
+    if (!hidden.has(headings[i].lineStart)) { W._olSelected = i; break; }
+  }
+  W.renderOutline();
 };
 
 // ── Render doc list ────────────────────────────────────────
@@ -648,6 +902,10 @@ W.selectDoc = async id => {
   W.sessionStart = W.now();
   W.sessionStartWords = W.wc(doc.content);
   W.renderDocs();
+  // Outline is per-doc; reset collapsed state and re-render when switching.
+  W._olCollapsed = new Set();
+  W._olSelected = 0;
+  if (W.outlineOpen) W.renderOutline();
   if (W.isMobile()) W.closeSidebar();
   if (W.splitOpen) W.rpPopulateSelect();
   ed.focus();
@@ -874,6 +1132,7 @@ W.updateCounts = () => {
 document.getElementById('editor').addEventListener('input', () => {
   W.renderHighlight();
   W.updateCounts();
+  if (W.outlineOpen) W.renderOutline();
   clearTimeout(W.saveTimer);
   W.saveTimer = setTimeout(W.saveDoc, 1000);
   clearTimeout(W.revTimer);
@@ -1051,8 +1310,251 @@ document.addEventListener('keydown', e => {
   if ((e.ctrlKey||e.metaKey) && e.key==='b') { e.preventDefault(); W.toggleSidebar(); }
   if ((e.ctrlKey||e.metaKey) && e.key==='n') { e.preventDefault(); W.createDoc(); }
   if ((e.ctrlKey||e.metaKey) && e.key==='\\') { e.preventDefault(); W.toggleSplit(); }
-  if (e.key==='Escape') { if (document.activeElement&&document.activeElement.tagName==='INPUT') return; if (document.getElementById('modal-root').innerHTML) W.closeModal(); else W.toggleSidebar(); }
+  if ((e.ctrlKey||e.metaKey) && e.key==='o') { e.preventDefault(); W.toggleOutline(); }
+  if ((e.ctrlKey||e.metaKey) && e.key==='f') { e.preventDefault(); W.openFind?.(); }
+  if ((e.ctrlKey||e.metaKey) && e.key===';') { e.preventDefault(); W.toggleTypewriter?.(); }
+  if (e.key==='Escape') {
+    if (document.activeElement&&document.activeElement.tagName==='INPUT') return;
+    if (W.findBarOpen) { W.closeFind?.(); return; }
+    if (document.getElementById('modal-root').innerHTML) W.closeModal();
+    else W.toggleSidebar();
+  }
   if (e.key==='F11'||((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='f')) { e.preventDefault(); document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+});
+
+// ═══════════════════════════════════════════════════════════
+// FIND / REPLACE
+// ═══════════════════════════════════════════════════════════
+// Inline bar at the bottom of the left editor pane. Plain literal,
+// case-insensitive search by default. Aa toggles case sensitivity; .*
+// toggles regex. No editor overlay highlighting yet (would require
+// changes to the highlight pipeline); we use native textarea selection
+// of the current match instead, which is sufficient for navigation.
+W.findBarOpen = false;
+W._findCase = false;
+W._findRegex = false;
+W._findMatches = [];  // array of {start, end}
+W._findIdx = -1;
+
+W.openFind = () => {
+  const bar = document.getElementById('find-bar');
+  W.findBarOpen = true;
+  bar.style.display = '';
+  const ed = document.getElementById('editor');
+  const input = document.getElementById('find-input');
+  // If the user has text selected, prefill it as the search term.
+  const sel = ed.value.slice(ed.selectionStart, ed.selectionEnd);
+  if (sel && !sel.includes('\n')) input.value = sel;
+  input.focus();
+  input.select();
+  W._findRecompute();
+};
+
+W.closeFind = () => {
+  W.findBarOpen = false;
+  document.getElementById('find-bar').style.display = 'none';
+  // Re-render so match highlights clear.
+  W.renderHighlight();
+  document.getElementById('editor').focus();
+};
+
+W._findToggleCase = () => {
+  W._findCase = !W._findCase;
+  document.getElementById('find-case').classList.toggle('on', W._findCase);
+  W._findRecompute();
+};
+W._findToggleRegex = () => {
+  W._findRegex = !W._findRegex;
+  document.getElementById('find-regex').classList.toggle('on', W._findRegex);
+  W._findRecompute();
+};
+
+// Recompute the list of matches and update the count display. Does NOT
+// move the caret — the user has to step explicitly.
+W._findRecompute = () => {
+  const q = document.getElementById('find-input').value;
+  const text = document.getElementById('editor').value;
+  W._findMatches = [];
+  const bar = document.getElementById('find-bar');
+  bar.classList.remove('no-match');
+  if (!q) { document.getElementById('find-count').textContent = '0 / 0'; return; }
+  let re;
+  try {
+    re = new RegExp(W._findRegex ? q : q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g' + (W._findCase ? '' : 'i'));
+  } catch {
+    // Invalid regex — show as no match, don't crash.
+    bar.classList.add('no-match');
+    document.getElementById('find-count').textContent = '? / ?';
+    return;
+  }
+  let m;
+  // Cap matches to avoid pathological perf on huge docs with greedy patterns.
+  while ((m = re.exec(text)) && W._findMatches.length < 10000) {
+    if (m[0].length === 0) { re.lastIndex++; continue; }  // avoid infinite loop on empty matches
+    W._findMatches.push({ start: m.index, end: m.index + m[0].length });
+  }
+  if (!W._findMatches.length) { bar.classList.add('no-match'); W._findIdx = -1; }
+  else if (W._findIdx >= W._findMatches.length || W._findIdx < 0) W._findIdx = 0;
+  W._findUpdateCount();
+  W.renderHighlight();
+};
+
+W._findUpdateCount = () => {
+  const total = W._findMatches.length;
+  const cur = total ? W._findIdx + 1 : 0;
+  document.getElementById('find-count').textContent = cur + ' / ' + total;
+};
+
+// Move to match (delta = +1 next, -1 previous). Wraps around.
+W.findStep = delta => {
+  if (!W._findMatches.length) { W._findRecompute(); if (!W._findMatches.length) return; }
+  W._findIdx = (W._findIdx + delta + W._findMatches.length) % W._findMatches.length;
+  W._findScrollToCurrent();
+  W._findUpdateCount();
+  W.renderHighlight();
+};
+
+W._findScrollToCurrent = () => {
+  const m = W._findMatches[W._findIdx];
+  if (!m) return;
+  const ed = document.getElementById('editor');
+  ed.focus();
+  ed.setSelectionRange(m.start, m.end);
+  // Scroll into view: estimate which line the match is on.
+  const linesBefore = ed.value.slice(0, m.start).split('\n').length - 1;
+  const cs = getComputedStyle(ed);
+  const lh = parseFloat(cs.lineHeight) || 32;
+  const padTop = parseFloat(cs.paddingTop) || 0;
+  const targetY = linesBefore * lh + padTop;
+  const visibleTop = ed.scrollTop;
+  const visibleBot = visibleTop + ed.clientHeight;
+  if (targetY < visibleTop + lh || targetY > visibleBot - lh*2) {
+    ed.scrollTop = Math.max(0, targetY - ed.clientHeight / 2);
+  }
+};
+
+W.findReplaceOne = () => {
+  if (!W._findMatches.length) return;
+  const m = W._findMatches[W._findIdx];
+  if (!m) return;
+  const replacement = document.getElementById('find-replace').value;
+  const ed = document.getElementById('editor');
+  // Use setRangeText so the operation is part of native undo history.
+  ed.focus();
+  ed.setSelectionRange(m.start, m.end);
+  ed.setRangeText(replacement, m.start, m.end, 'end');
+  // Fire input event so highlight, save timer, outline, etc. all run.
+  ed.dispatchEvent(new Event('input', { bubbles: true }));
+  // Recompute matches; advance to next (or stay, if it's the last).
+  const prevIdx = W._findIdx;
+  W._findRecompute();
+  if (W._findMatches.length) {
+    W._findIdx = Math.min(prevIdx, W._findMatches.length - 1);
+    W._findScrollToCurrent();
+    W._findUpdateCount();
+  }
+};
+
+W.findReplaceAll = () => {
+  if (!W._findMatches.length) { W._findRecompute(); if (!W._findMatches.length) return; }
+  const replacement = document.getElementById('find-replace').value;
+  const ed = document.getElementById('editor');
+  ed.focus();
+  // Select the entire document, replace with the rebuilt text. One undo step.
+  let out = '';
+  let cursor = 0;
+  for (const m of W._findMatches) {
+    out += ed.value.slice(cursor, m.start) + replacement;
+    cursor = m.end;
+  }
+  out += ed.value.slice(cursor);
+  ed.setSelectionRange(0, ed.value.length);
+  ed.setRangeText(out, 0, ed.value.length, 'start');
+  ed.dispatchEvent(new Event('input', { bubbles: true }));
+  W._findRecompute();
+};
+
+// Wire input + key handlers on the find inputs.
+(() => {
+  const fi = document.getElementById('find-input');
+  const fr = document.getElementById('find-replace');
+  fi.addEventListener('input', W._findRecompute);
+  fi.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); W.findStep(e.shiftKey ? -1 : 1); }
+    else if (e.key === 'Escape') { e.preventDefault(); W.closeFind(); }
+  });
+  fr.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? W.findReplaceAll() : W.findReplaceOne(); }
+    else if (e.key === 'Escape') { e.preventDefault(); W.closeFind(); }
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════
+// TYPEWRITER SCROLLING
+// ═══════════════════════════════════════════════════════════
+// Keep the current line vertically centered in the editor. Off by default;
+// toggled via settings.typewriter or Ctrl+; for the current session.
+// We compute the caret's visual Y by querying the highlight overlay (which
+// already mirrors the textarea's layout exactly) at the same character
+// offset, then nudge ed.scrollTop so that Y sits at the editor's center.
+W._typewriterOn = false;
+W._applyTypewriter = () => {
+  W._typewriterOn = W.settings.typewriter === 'true';
+  if (W._typewriterOn) W._typewriterCenter();
+};
+W.toggleTypewriter = () => {
+  // Toggle for this session without persisting; useful for a quick on/off.
+  W._typewriterOn = !W._typewriterOn;
+  if (W._typewriterOn) W._typewriterCenter();
+};
+W._typewriterCenter = () => {
+  if (!W._typewriterOn) return;
+  const ed = document.getElementById('editor');
+  const hl = document.getElementById('editor-highlight');
+  if (document.activeElement !== ed) return;
+  // Find caret's visual Y by placing a Range at the caret offset inside the
+  // highlight overlay. The overlay must have a single text-node-ish content;
+  // it does (we call renderHighlight which sets innerHTML to escaped text
+  // possibly wrapped in <span class="cm">). Walk to the offset.
+  const pos = ed.selectionStart;
+  const text = ed.value;
+  // Build the rendered HTML position->DOM-position mapping is complex; for
+  // simplicity, use a hidden mirror that matches the textarea exactly and
+  // measures the caret's Y. This is the same trick the diagnostic used.
+  const cs = getComputedStyle(ed);
+  const mirror = document.createElement('div');
+  const props = ['boxSizing','width','padding','border','fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','wordSpacing','whiteSpace','overflowWrap','wordBreak','tabSize'];
+  const rect = ed.getBoundingClientRect();
+  mirror.style.position = 'fixed';
+  mirror.style.visibility = 'hidden';
+  mirror.style.left = rect.left + 'px';
+  mirror.style.top = rect.top + 'px';
+  props.forEach(p => mirror.style[p] = cs[p]);
+  mirror.style.overflow = 'hidden';
+  mirror.style.whiteSpace = 'pre-wrap';
+  mirror.textContent = text.slice(0, pos);
+  const marker = document.createElement('span');
+  marker.textContent = '\u200b';  // zero-width space so the line height is still computed
+  mirror.appendChild(marker);
+  document.body.appendChild(mirror);
+  const mRect = marker.getBoundingClientRect();
+  const caretYInEditor = mRect.top - rect.top + ed.scrollTop;
+  mirror.remove();
+  const lh = parseFloat(cs.lineHeight) || 32;
+  const target = caretYInEditor - ed.clientHeight / 2 + lh / 2;
+  ed.scrollTop = Math.max(0, target);
+};
+// Hook into the existing input event by piggybacking on selectionchange,
+// which fires for both typing and arrow-key navigation.
+document.addEventListener('selectionchange', () => {
+  if (!W._typewriterOn) return;
+  if (document.activeElement?.id !== 'editor') return;
+  // Throttle: don't re-center more than ~60Hz.
+  if (W._typewriterRAF) return;
+  W._typewriterRAF = requestAnimationFrame(() => {
+    W._typewriterRAF = null;
+    W._typewriterCenter();
+  });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -1306,6 +1808,8 @@ W.modalHTML.settings = () => {
       <div class="field"><label style="cursor:pointer;color:color-mix(in srgb,var(--acc) 80%,transparent)"><input type="checkbox" ${s.hemingwayMode==='true'?'checked':''} onchange="W.setSetting('hemingwayMode',String(this.checked))"> hemingway_protocol</label><div style="font-size:10px;color:color-mix(in srgb,var(--acc) 50%,transparent);margin-top:4px;margin-left:20px">// disables delete. write forward only.</div></div>
       <div class="field"><label>revision_history_depth: <span style="color:var(--acc2)">${(parseInt(s.revisionDepth,10)||0) || 'unlimited'}</span></label><input type="range" min="0" max="500" step="10" value="${parseInt(s.revisionDepth,10)||0}" oninput="W.setSetting('revisionDepth',this.value);this.previousElementSibling.querySelector('span').textContent=(parseInt(this.value,10)||0)||'unlimited'"><div style="font-size:10px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-top:4px">// auto-saved versions per doc to keep. named/saved versions are never deleted. 0 = unlimited.</div></div>
       <div class="field"><label>comment_markers</label><div style="display:flex;gap:8px"><div style="flex:1"><div style="font-size:9px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-bottom:2px">open</div><input type="text" value="${W.esc(s.commentOpen||'%%')}" placeholder="%%" onchange="W.setSetting('commentOpen',this.value);W.renderHighlight()"></div><div style="flex:1"><div style="font-size:9px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-bottom:2px">close</div><input type="text" value="${W.esc(s.commentClose||'%%')}" placeholder="%%" onchange="W.setSetting('commentClose',this.value);W.renderHighlight()"></div></div><div style="font-size:10px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-top:4px">// text between these markers is greyed out</div></div>
+      <div class="field"><label>heading_marker</label><input type="text" value="${W.esc(s.headingMarker||'#')}" placeholder="#" onchange="W.setSetting('headingMarker',this.value);if(W.outlineOpen)W.renderOutline()"><div style="font-size:10px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-top:4px">// outline (Ctrl+O) treats lines like <span style="color:var(--acc2)">${W.esc(s.headingMarker||'#')} title</span>, <span style="color:var(--acc2)">${W.esc((s.headingMarker||'#').repeat(2))} subtitle</span> as headings. level = number of repeats.</div></div>
+      <div class="field"><label style="cursor:pointer"><input type="checkbox" ${s.typewriter==='true'?'checked':''} onchange="W.setSetting('typewriter',String(this.checked));W._applyTypewriter()"> typewriter_scrolling</label><div style="font-size:10px;color:color-mix(in srgb,var(--text) 40%,transparent);margin-top:4px;margin-left:20px">// keep the current line vertically centered (Ctrl+;)</div></div>
 
     </div></div></div>`;
 };
@@ -2806,6 +3310,7 @@ W.localRestore = () => {
   await W.initDB();
   await W.loadAll();
   W.applySettings();
+  W._applyTypewriter();
   await W.handleOAuthReturn();
   // Sweep over-cap revisions in the background (non-blocking).
   setTimeout(() => W.gcRevisionsAll().catch(e => console.warn('[gc] failed', e)), 2000);
