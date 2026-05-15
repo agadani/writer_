@@ -226,7 +226,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;b
 <div id="sidebar">
   <div class="sb-header">
     <h1 class="glitch" onclick="W.oblique()" style="cursor:pointer" title="Need inspiration?">WRITER<span style="color:var(--acc)">_</span></h1>
-    <p>// neural_draft_v2.6</p>
+    <p>// neural_draft_v2.8</p>
   </div>
   <div class="sb-actions">
     <button class="btn btn-cyan" style="flex:1" onclick="W.createDoc()">+ Doc</button>
@@ -365,6 +365,17 @@ W.dbIdx = (store, idx, key) => new Promise((r,j) => { const tx = W.db.transactio
 W.wc = s => { const t = s.trim(); return t ? t.split(/\s+/).length : 0; };
 W.cc = s => s.length;
 W.now = () => Date.now();
+// Relative luminance from a #rrggbb hex (or short #rgb). Used to pick
+// dark-bg vs light-bg color variants (e.g. diff add/remove tints).
+W.isDarkColor = hex => {
+  if (!hex || typeof hex !== 'string') return true;
+  let h = hex.trim().replace(/^#/, '');
+  if (h.length === 3) h = h.split('').map(c => c+c).join('');
+  if (h.length !== 6) return true;
+  const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+  // Standard relative luminance (perceived brightness). <0.5 = dark.
+  return (0.2126*r + 0.7152*g + 0.0722*b) / 255 < 0.5;
+};
 
 // ── Revision GC ────────────────────────────────────────────
 // Keep at most settings.revisionDepth auto-revisions per doc (0 = unlimited).
@@ -416,6 +427,12 @@ W.applySettings = () => {
   r.setProperty('--acc', s.accentColor || '#ff2a6d');
   r.setProperty('--acc2', s.accent2Color || '#f9f002');
   r.setProperty('--cm', s.commentColor || '#555555');
+  // Diff colors: deliberately NOT tied to --text/--acc so they stay
+  // semantically green/red regardless of theme. Two palettes depending on
+  // whether the paper is dark or light, so contrast stays comfortable.
+  const isDark = W.isDarkColor(s.paperColor);
+  r.setProperty('--diff-add', isDark ? '#9bd9a6' : '#2e7d3a');
+  r.setProperty('--diff-rem', isDark ? '#e89999' : '#a04040');
   // Font stack uses concrete family names rather than relying on the generic
   // `monospace` keyword as the primary — Chromium resolves that keyword
   // differently inside form controls vs blocks, producing cursor drift.
@@ -1752,9 +1769,21 @@ W.importGDoc = async (fileId, name) => {
   }
 };
 
-// Hook into openModal to trigger the Drive listing after render
+// Hook into openModal to trigger the Drive listing after render, and to
+// auto-select a revision when the versions modal opens so the user lands
+// on a useful view (the diff) instead of the empty-state hint.
 const _origOpenModal = W.openModal;
-W.openModal = type => { _origOpenModal(type); if (type === 'import') W._importAfterOpen(); };
+W.openModal = type => {
+  // Remember the prior selection so re-renders (rename, GC, etc.) keep it.
+  const priorIdx = type === 'revisions' ? W._revSelected : -1;
+  _origOpenModal(type);
+  if (type === 'import') W._importAfterOpen();
+  if (type === 'revisions' && W._revs().length) {
+    // Defer so the modal DOM exists before showRev tries to add the .active class.
+    const idx = priorIdx >= 0 && priorIdx < W._revs().length ? priorIdx : 0;
+    setTimeout(() => W.showRev(idx), 0);
+  }
+};
 
 // ── Revisions modal ────────────────────────────────────────
 // ── Save named version ─────────────────────────────────────
@@ -1822,7 +1851,7 @@ W.diffLines = (a, b) => {
   return ops.reverse();
 };
 
-W._revViewMode = 'content'; // 'content' or 'diff'
+W._revViewMode = 'diff'; // 'diff' (default — answers "what changed?") or 'content'
 W._revSelected = -1;
 
 W.modalHTML.revisions = () => {
@@ -1844,7 +1873,10 @@ W.modalHTML.revisions = () => {
     <div style="display:flex;flex:1;overflow:hidden">
       <div class="rev-list">${items}</div>
       <div id="rev-preview" class="rev-preview" style="flex:1;display:flex;flex-direction:column">
-        <div style="flex:1;display:flex;align-items:center;justify-content:center;color:color-mix(in srgb,var(--text) 40%,transparent);font-size:12px">// select a version to preview</div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center;font-size:12px;color:color-mix(in srgb,var(--text) 50%,transparent)">
+          <div>// select a version on the left</div>
+          <div style="font-size:10px;color:color-mix(in srgb,var(--text) 35%,transparent);line-height:1.6">tap a version to see what changed between it and the current document<br>(+ added lines in yellow, &minus; removed lines in pink)</div>
+        </div>
       </div>
     </div></div></div>`;
 };
@@ -1859,7 +1891,11 @@ W._revs = () => W.revisions.filter(r => r.documentId === W.currentId).sort((a,b)
 
 W.showRev = idx => {
   W._revSelected = idx;
-  W._revViewMode = 'content';
+  // Default to diff view: when a user opens the version modal, the question
+  // they almost always have is "what changed?" — answer it directly.
+  // _revViewMode is preserved across selections so once they switch to full
+  // text, it stays on full text for the rest of the session.
+  if (!W._revViewMode) W._revViewMode = 'diff';
   const revs = W._revs();
   const rev = revs[idx];
   if (!rev) return;
@@ -1869,32 +1905,49 @@ W.showRev = idx => {
 };
 
 W._renderRevPreview = (rev, idx) => {
-  const revs = W._revs();
   const mode = W._revViewMode;
   const nameDisplay = rev.name ? `<span style="color:var(--acc2);margin-right:8px">${W.esc(rev.name)}</span>` : '';
-  const toolbar = `<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid color-mix(in srgb,var(--text) 15%,transparent);flex-shrink:0">
+  // Segmented control: the "changes" tab is the answer to the question most
+  // users have when they open the versions modal, so it's visually prominent.
+  const tabBase = 'font-family:inherit;font-size:11px;padding:8px 14px;border:1px solid color-mix(in srgb,var(--text) 30%,transparent);background:none;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;min-height:36px;transition:all .15s';
+  const tabOn = 'background:color-mix(in srgb,var(--text) 14%,transparent);border-color:var(--text);color:var(--text)';
+  const tabOff = 'color:color-mix(in srgb,var(--text) 60%,transparent)';
+  const segCtrl = `<div style="display:inline-flex" role="tablist">
+      <button style="${tabBase};${mode==='diff'?tabOn:tabOff};border-right-width:0" onclick="W._revViewMode='diff';W._renderRevPreview(W._revs()[${idx}],${idx})" title="Show what changed between this version and the current document">changes</button>
+      <button style="${tabBase};${mode==='content'?tabOn:tabOff}" onclick="W._revViewMode='content';W._renderRevPreview(W._revs()[${idx}],${idx})">full_text</button>
+    </div>`;
+  const toolbar = `<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid color-mix(in srgb,var(--text) 15%,transparent);flex-shrink:0">
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
       ${nameDisplay}<span style="font-size:10px;color:color-mix(in srgb,var(--text) 60%,transparent)">${new Date(rev.createdAt).toLocaleString()} // ${rev.wordCount}w</span>
     </div>
-    <div style="display:flex;gap:4px;flex-wrap:wrap">
-      <button class="btn ${mode==='content'?'btn-cyan':'btn-pink'}" style="font-size:9px;padding:6px 10px" onclick="W._revViewMode='content';W._renderRevPreview(W._revs()[${idx}],${idx})">content</button>
-      <button class="btn ${mode==='diff'?'btn-cyan':'btn-pink'}" style="font-size:9px;padding:6px 10px" onclick="W._revViewMode='diff';W._renderRevPreview(W._revs()[${idx}],${idx})">diff</button>
-      <button class="btn btn-yellow" style="font-size:9px;padding:6px 10px" onclick="W.nameRev('${rev.id}')">name</button>
-      <button class="btn btn-yellow" style="font-size:9px;padding:6px 10px" onclick="W.restoreRev('${rev.id}')">&gt; restore</button>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      ${segCtrl}
+      <button class="btn btn-yellow" style="font-size:10px;padding:8px 12px;min-height:36px" onclick="W.nameRev('${rev.id}')">name</button>
+      <button class="btn btn-yellow" style="font-size:10px;padding:8px 12px;min-height:36px" onclick="W.restoreRev('${rev.id}')">&gt; restore</button>
     </div>
   </div>`;
 
   let body;
   if (mode === 'diff') {
-    // Diff against current document content or previous version
     const current = document.getElementById('editor').value;
-    const ops = W.diffLines(rev.content, current);
-    const lines = ops.map(op => {
-      if (op.type === '+') return `<div style="background:color-mix(in srgb,var(--acc2) 12%,transparent);color:var(--acc2);padding:0 4px">+ ${W.esc(op.text)}</div>`;
-      if (op.type === '-') return `<div style="background:color-mix(in srgb,var(--acc) 12%,transparent);color:var(--acc);padding:0 4px;text-decoration:line-through;opacity:.7">- ${W.esc(op.text)}</div>`;
-      return `<div style="padding:0 4px;opacity:.5">${W.esc(op.text)}</div>`;
-    }).join('');
-    body = `<div style="font-size:10px;color:color-mix(in srgb,var(--text) 50%,transparent);margin-bottom:6px">// changes from this version to current</div><div style="font-size:12px;font-family:'Courier New',monospace;line-height:1.6;overflow-y:auto;flex:1">${lines}</div>`;
+    if (rev.content === current) {
+      body = `<div style="flex:1;display:flex;align-items:center;justify-content:center;color:color-mix(in srgb,var(--text) 50%,transparent);font-size:12px;text-align:center;padding:24px">// no changes &mdash; this version is identical to the current document</div>`;
+    } else {
+      const ops = W.diffLines(rev.content, current);
+      const added = ops.filter(o => o.type==='+').length;
+      const removed = ops.filter(o => o.type==='-').length;
+      const lines = ops.map(op => {
+        if (op.type === '+') return `<div style="background:color-mix(in srgb,var(--diff-add) 18%,transparent);color:var(--diff-add);padding:1px 6px;border-left:2px solid var(--diff-add)">+ ${W.esc(op.text)}</div>`;
+        if (op.type === '-') return `<div style="background:color-mix(in srgb,var(--diff-rem) 18%,transparent);color:var(--diff-rem);padding:1px 6px;text-decoration:line-through;opacity:.85;border-left:2px solid var(--diff-rem)">- ${W.esc(op.text)}</div>`;
+        return `<div style="padding:1px 6px;color:color-mix(in srgb,var(--text) 45%,transparent)">${W.esc(op.text) || '&nbsp;'}</div>`;
+      }).join('');
+      const legend = `<div style="font-size:10px;color:color-mix(in srgb,var(--text) 50%,transparent);margin-bottom:8px;display:flex;gap:14px;flex-wrap:wrap">
+        <span>// this version &rarr; current document</span>
+        <span style="color:var(--diff-add)">+ ${added} added</span>
+        <span style="color:var(--diff-rem)">&minus; ${removed} removed</span>
+      </div>`;
+      body = legend + `<div style="font-size:12px;font-family:ui-monospace,Menlo,'Courier New',monospace;line-height:1.55;overflow:auto;flex:1;border:1px solid color-mix(in srgb,var(--text) 12%,transparent);padding:6px 0">${lines}</div>`;
+    }
   } else {
     body = `<pre style="white-space:pre-wrap;font-size:12px;color:color-mix(in srgb,var(--text) 75%,transparent);line-height:1.6;overflow-y:auto;flex:1;margin:0">${W.esc(rev.content)}</pre>`;
   }
