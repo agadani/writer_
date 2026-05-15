@@ -1,0 +1,23 @@
+public/index.html
+  fefc735f624100f5 258,748-757,761-763,767,769-770,1315-1317,1319-1332,1334,1766-1804,1806-1894,1898,1900-1903,1905-1906,1910-1912,1914,1916,1918-1919,1921,1924,1926-1927,1933,1935,1937,1939,1941,1943-1944,1949-1951,1954,1956-1958,1963-1964,1966-1969,1971-1973,1975,1981,1983-1985,1987,1989-1992,1994,1996-2003,2005-2007,2009-2130,2133-2134,2136-2154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "b18b3e00edcdc7b1814c04a0bc6501b0bb5acf50",
+  "prompts": {
+    "fefc735f624100f5": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1dc8cda44ffelDaagscJ3z4QiN",
+        "model": "cloudflare-workers-ai/@cf/moonshotai/kimi-k2.6"
+      },
+      "human_author": "avani",
+      "messages": [],
+      "total_additions": 372,
+      "total_deletions": 132,
+      "accepted_lines": 372,
+      "overriden_lines": 0
+    }
+  }
+}
