@@ -1,0 +1,23 @@
+public/index.html
+  fefc735f624100f5 229,368-378,430-435,1772-1774,1776-1786,1854,1876-1879,1894-1898,1910-1919,1923-1926,1933-1950
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "bd9accbe041163d06d069506f29013398bd0ad6d",
+  "prompts": {
+    "fefc735f624100f5": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1dc8cda44ffelDaagscJ3z4QiN",
+        "model": "cloudflare-workers-ai/@cf/moonshotai/kimi-k2.6"
+      },
+      "human_author": "avani",
+      "messages": [],
+      "total_additions": 74,
+      "total_deletions": 21,
+      "accepted_lines": 74,
+      "overriden_lines": 0
+    }
+  }
+}
